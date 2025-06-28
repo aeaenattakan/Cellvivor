@@ -2,7 +2,7 @@ import express from 'express';
 import cors from "cors";
 import mongoose from "mongoose";
 import bodyParser from "body-parser";
-//import model from "./src/model/model.js"
+import model from "./src/model/model.js"
 
 const { urlencoded, json } = bodyParser;
 
@@ -12,9 +12,10 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
   progress: { type: Number, required: true },
-  gameprogress: { type: Number, required: true },
+  gameprogress: { type: String, required: true },
+  weakness:{ type: Array, required: true },
 });
-const User = mongoose.model('Users', userSchema);
+const User = mongoose.models.Users || mongoose.model('Users', userSchema);
 
 
 const keywordSchema = new mongoose.Schema({
@@ -23,10 +24,20 @@ const keywordSchema = new mongoose.Schema({
   level: { type: String },       // (easy, medium, hard)
   category: { type: String }    
 });
-const Keyword = mongoose.model('Keywords', keywordSchema);
+const Keyword = mongoose.models.Keywords || mongoose.model('Keywords', keywordSchema);
+
+
+// Gameplay schema and model
+const gameplaySchema = new mongoose.Schema({
+  hinter: { type: String, required: true },
+  guesser: { type: String, required: true },
+  mistakes: { type: Array, required: true },
+  score: { type: Number, required: true },
+  
+});
+const Gameplay = mongoose.models.Gameplay || mongoose.model('Gameplay', gameplaySchema);
 
 const { connect } = mongoose;
-
 mongoose.Promise = global.Promise;
 
 connect(mongo_uri, { useNewUrlParser: true }).then(
@@ -96,6 +107,21 @@ app.get('/keywords', async (req, res) => {
   }
 });
 
+// Get a random keyword
+app.get('/api/random-keyword', async (req, res) => {
+  try {
+    const count = await Keyword.countDocuments();
+    if (count === 0) {
+      return res.status(404).json({ error: 'No keywords found' });
+    }
+    const random = Math.floor(Math.random() * count);
+    const keywordDoc = await Keyword.findOne().skip(random);
+    res.json({ keyword: keywordDoc.word, hint: keywordDoc.hint });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.patch('/users/:id', async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
@@ -114,6 +140,99 @@ app.patch('/users/:id', async (req, res) => {
   }
 });
 
+// Check if user exists (for sign in)
+app.post('/api/check-user', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const user = await User.findOne({ name, email });
+    res.json({ exists: !!user });
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
+});
+
+// Sign in (register new user if not exists)
+app.post('/api/signin', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    // Check again to avoid duplicates
+    const existing = await User.findOne({ name, email });
+    if (existing) {
+      return res.status(409).json({ message: 'User already exists' });
+    }
+    // Always set progress and gameprogress to 0 for new users
+    const newUser = new User({ name, email, progress: 0, gameprogress: 0 });
+    const savedUser = await newUser.save();
+    res.status(201).json({
+      success: true,
+      message: "Sign in successful",
+      user: {
+        _id: savedUser._id,
+        name: savedUser.name,
+        email: savedUser.email,
+        progress: savedUser.progress,
+        gameprogress: savedUser.gameprogress
+      }
+    });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+// Login (check if user exists by name and email)
+app.post('/api/login', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const user = await User.findOne({ name, email });
+    if (user) {
+      res.json({
+        success: true,
+        message: 'Login successful',
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          progress: user.progress,
+          gameprogress: user.gameprogress
+        }
+      });
+    } else {
+      res.json({ success: false, message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
+});
+///////////////////////////
+// ตอนเชื่อม socket อย่าลืมแก้เรื่องบทบาท
+app.post('/api/gameplay-mistake', async (req, res) => {
+  try {
+    const { userId, keyword, result } = req.body;
+    if (!userId || !keyword || !result) {
+      return res.status(400).json({ error: 'Missing userId, keyword, or result' });
+    }
+    let gameplay = await Gameplay.findOne({ guesser: userId });
+    if (!gameplay) {
+      // Use a default value for hinter if not provided
+      gameplay = new Gameplay({
+        hinter: 'system',
+        guesser: userId,
+        mistakes: [],
+        score: 0
+      });
+    }
+
+    // Add the new mistake as a string "result:keyword" to the mistakes array
+    gameplay.mistakes.push(`${result}:${keyword}`);
+    gameplay.score = (gameplay.score || 0) + 1;
+    await gameplay.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+//////////////////////////////////////////
+
 app.use((req, res) => {
     res.status(404).send("Path not found");
 });
@@ -123,5 +242,6 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).send(err.message || "Server error");
 });
 
+localStorage.setItem('user', JSON.stringify(user));
 
 export default app;

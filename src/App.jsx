@@ -2,6 +2,9 @@ import React, { useRef, useState, useEffect} from 'react';
 import axios from 'axios';
 import Phaser from 'phaser';
 import { PhaserGame } from './PhaserGame';
+import { EventBus } from './game/EventBus';
+import Login from './Login';
+import Signin from './Signin';
 
 function App ()
 {
@@ -84,6 +87,32 @@ function App ()
             });
     }, []);
 
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+
+    const [showLogin, setShowLogin] = useState(false);
+    const [showSignin, setShowSignin] = useState(false);
+
+    useEffect(() => {
+        // Listen for the show-login and show-signin events from Phaser
+        const loginHandler = () => setShowLogin(true);
+        const signinHandler = () => setShowSignin(true);
+        EventBus.on('show-login', loginHandler);
+        EventBus.on('show-signin', signinHandler);
+        return () => {
+            EventBus.off('show-login', loginHandler);
+            EventBus.off('show-signin', signinHandler);
+        };
+    }, []);
+
+    const handleLogin = (user) => {
+        setShowLogin(false);
+        // You can do more with the user info here
+    };
+
+    const handleSignin = (user) => {
+        setShowSignin(false);
+        // You can do more with the user info here
+    };
 
     return (
         <div id="app">
@@ -102,17 +131,18 @@ function App ()
                     <button className="button" onClick={addSprite}>Add New Sprite</button>
                 </div>
                 <div className="data">
-                    <h1>collection</h1>
                     <ul>
                         {users.map((item) => (
-                            <li key={item._id}>{item.name}: ${item.age}</li>
+                            <li key={item._id}>{item.name}</li>
                         ))}
                     </ul>
                 </div>
                 
             </div>
+            {showLogin && <Login onLogin={handleLogin} />}
+            {showSignin && <Signin onSignin={handleSignin} />}
         </div>
     )
 }
 
-export default App
+export default App;
