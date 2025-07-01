@@ -12,14 +12,6 @@ export class MainMenu extends Scene
 
     create ()
     {
-        this.cameras.main.setBackgroundColor('#91E3FF');
-        const bgRect = this.add.graphics();
-        bgRect.fillStyle(0x4BC6F0, 1);
-        const rectWidth = this.cameras.main.width * 0.8;
-        const rectHeight = this.cameras.main.height * 0.8;
-        const rectX = (this.cameras.main.width - rectWidth) / 2;
-        const rectY = (this.cameras.main.height - rectHeight) / 1.5;
-        bgRect.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, 60);
         this.logo = this.add.image(512, 300, 'logo').setDepth(100);
 
         // Track current user from localStorage (if available)
@@ -39,6 +31,49 @@ export class MainMenu extends Scene
                 strokeThickness: 0
             }).setOrigin(0.5).setDepth(110);
         }
+
+        // Storyboard and Multiplayer Mode buttons
+        const linkButtonY = 580;
+        const linkButtonSpacing = 350;
+        const linkButtonStartX = 512 - (1 * linkButtonSpacing) / 2;
+
+        // Storyboard button
+        const storyboardBtn = this.add.text(linkButtonStartX, linkButtonY, 'Storyboard: POV Story Arc', {
+            fontSize: '22px',
+            color: '#4BC6F0',
+            fontStyle: 'bold',
+            fontWeight: '600',
+            align: 'center',
+            strokeThickness: 0
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(120);
+        storyboardBtn.on('pointerover', () => storyboardBtn.setColor('#6067FE'));
+        storyboardBtn.on('pointerout', () => storyboardBtn.setColor('#4BC6F0'));
+        storyboardBtn.on('pointerdown', () => {
+            window.open('/storyboard', '_blank');
+        });
+
+        // Multiplayer Mode button
+        const multiplayerBtn = this.add.text(linkButtonStartX + linkButtonSpacing, linkButtonY, 'Multiplayer Mode', {
+            fontSize: '22px',
+            color: '#4BC6F0',
+            fontStyle: 'bold',
+            fontWeight: '600',
+            align: 'center',
+            strokeThickness: 0
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(120);
+        multiplayerBtn.on('pointerover', () => multiplayerBtn.setColor('#6067FE'));
+        multiplayerBtn.on('pointerout', () => multiplayerBtn.setColor('#4BC6F0'));
+        multiplayerBtn.on('pointerdown', () => {
+            // Navigate to the Game scene
+            this.scene.start('Game');
+        });
+        
 
         const buttonLabels = [
             { label: 'Sign in', action: () => { EventBus.emit('show-signin'); console.log('Signin requested'); } },

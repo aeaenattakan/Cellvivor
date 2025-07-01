@@ -93,7 +93,6 @@ function App ()
     const [showSignin, setShowSignin] = useState(false);
 
     useEffect(() => {
-        // Listen for the show-login and show-signin events from Phaser
         const loginHandler = () => setShowLogin(true);
         const signinHandler = () => setShowSignin(true);
         EventBus.on('show-login', loginHandler);
@@ -106,22 +105,22 @@ function App ()
 
     const handleLogin = (user) => {
         setShowLogin(false);
-        // You can do more with the user info here
+        // 
     };
 
     const handleSignin = (user) => {
         setShowSignin(false);
-        // You can do more with the user info here
+        // 
     };
 
     return (
         <div id="app">
             <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
             <div>
-                <div>
+                {/* <div>
                     <button className="button" onClick={changeScene}>Change Scene</button>
-                </div>
-                <div>
+                </div> */}
+                {/* <div>
                     <button disabled={canMoveSprite} className="button" onClick={moveSprite}>Toggle Movement</button>
                 </div>
                 <div className="spritePosition">Sprite Position:
@@ -135,8 +134,8 @@ function App ()
                         {users.map((item) => (
                             <li key={item._id}>{item.name}</li>
                         ))}
-                    </ul>
-                </div>
+                    </ul> */}
+                {/* </div> */}
                 
             </div>
             {showLogin && <Login onLogin={handleLogin} />}

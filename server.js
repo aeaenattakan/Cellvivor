@@ -3,9 +3,17 @@ import cors from "cors";
 import mongoose from "mongoose";
 import bodyParser from "body-parser";
 import model from "./src/model/model.js"
-
+import http from 'http';
+import * as io from 'socket.io';
+var app = express();
+var server = http.Server(app);
+const socketio = new io.Server(server);
 const { urlencoded, json } = bodyParser;
+// var io = socketio(server, {
+//   pingTimeout: 60000,
+// })
 
+//io.on('connection', function (socket) {}
 var mongo_uri = "mongodb+srv://bammynithirathaya:cellvivor@cluster0.ovn4dde.mongodb.net/guessitdb?retryWrites=true&w=majority&appName=Cluster0";
 
 const userSchema = new mongoose.Schema({
@@ -50,7 +58,7 @@ connect(mongo_uri, { useNewUrlParser: true }).then(
   }
 );
 
-var app = express();
+// var app = express();
 
 app.use(cors());
 
@@ -206,6 +214,22 @@ app.post('/api/login', async (req, res) => {
 ///////////////////////////
 // ตอนเชื่อม socket อย่าลืมแก้เรื่องบทบาท
 app.post('/api/gameplay-mistake', async (req, res) => {
+// Endpoint to get gameplay score for a user
+app.get('/api/gameplay-score', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' });
+    }
+    const gameplay = await Gameplay.findOne({ guesser: userId });
+    if (!gameplay) {
+      return res.json({ score: 0 });
+    }
+    res.json({ score: gameplay.score });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
   try {
     const { userId, keyword, result } = req.body;
     if (!userId || !keyword || !result) {
@@ -213,7 +237,6 @@ app.post('/api/gameplay-mistake', async (req, res) => {
     }
     let gameplay = await Gameplay.findOne({ guesser: userId });
     if (!gameplay) {
-      // Use a default value for hinter if not provided
       gameplay = new Gameplay({
         hinter: 'system',
         guesser: userId,
@@ -221,12 +244,14 @@ app.post('/api/gameplay-mistake', async (req, res) => {
         score: 0
       });
     }
-
-    // Add the new mistake as a string "result:keyword" to the mistakes array
-    gameplay.mistakes.push(`${result}:${keyword}`);
-    gameplay.score = (gameplay.score || 0) + 1;
+    // Add the new mistake (result:keyword)
+    gameplay.mistakes.push(result);
+    // Only increment score if result is 'TT:keyword'
+    if (result.startsWith('TT:')) {
+      gameplay.score += 1;
+    }
     await gameplay.save();
-    res.json({ success: true });
+    res.json({ success: true, gameplay });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -242,6 +267,6 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).send(err.message || "Server error");
 });
 
-localStorage.setItem('user', JSON.stringify(user));
+// localStorage.setItem('user', JSON.stringify(user));
 
 export default app;

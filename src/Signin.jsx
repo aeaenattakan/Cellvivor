@@ -38,6 +38,7 @@ function Signin({ onSignin }) {
     handlePrompt();
     // Only run once when component mounts
     // eslint-disable-next-line
+    
   }, []);
 
   return null;
