@@ -8,11 +8,46 @@ export class Game extends Scene
         super('Game');
     }
     
+    preload() {
+        this.load.image('hint', 'assets/hint.png');
+    }
+
     create ()
     {
         this.cameras.main.setBackgroundColor('#FFD700')
+        // Create rounded rectangle with white outline and orange fill
+        const graphics = this.add.graphics();
+
+        // Set both fill and stroke styles
+        graphics.fillStyle(0xFF8317);        // orange fill
+        graphics.lineStyle(19, 0xFFFFFF);    // white border, 16px thick
+
+        // Calculate proper centered position
+        const cardWidth = 867;
+        const cardHeight = 520;
+        const cardX = this.cameras.main.centerX - cardWidth / 2;
+        const cardY = this.cameras.main.centerY - cardHeight / 2;
+
+        // Draw the rounded rectangle with both fill and stroke
+        graphics.fillRoundedRect(
+            cardX,      // x
+            cardY,      // y
+            cardWidth,  // width
+            cardHeight, // height
+            40          // corner radius
+        );
+
+        graphics.strokeRoundedRect(
+            cardX,      // x
+            cardY,      // y
+            cardWidth,  // width
+            cardHeight, // height
+            40          // corner radius
+        );
+
+        graphics.setDepth(0);
         // Add a back arrow button (top left)
-        const arrow = this.add.text(60, 60, '<', {
+        const arrow = this.add.text(60, 77, '<', {
             fontSize: '48px',
             color: '#ffffffff',
             align: 'Left',
@@ -22,7 +57,7 @@ export class Game extends Scene
             const confirmQuit = window.confirm('Do you want to quit the game?');
             if (confirmQuit) {
                 console.log('User chose to quit the game.');
-                this.scene.start('MainMenu');
+                this.scene.start('Mode');
             } else {
                 console.log('User chose to stay in the game.');
             }
@@ -44,6 +79,7 @@ export class Game extends Scene
         let keywordText = this.add.text(512, 300, 'Loading...', {
             fontSize: '48px',
             color: '#FFFFFF',
+            fontStyle: 'bold',
             align: 'center'
         }).setOrigin(0.5);
 
@@ -116,20 +152,15 @@ export class Game extends Scene
 
         loadKeyword();
 
-        const hintBg = this.add.rectangle(900, 200, 60, 60, 0x000000, 0.5)
+        const hintIcon = this.add.image(900, 200, 'hint')
             .setOrigin(0.5)
-            .setDepth(150);
-        const hintButton = this.add.text(900, 200, '\uD83D\uDCA1', {
-            fontSize: '44px',
-            color: '#fff',
-        })
-            .setOrigin(0.5)
+            .setScale(0.13)
             .setDepth(151)
             .setInteractive({ useHandCursor: true });
 
-        hintButton.on('pointerover', () => hintButton.setStyle({ color: '#FFD700' }));
-        hintButton.on('pointerout', () => hintButton.setStyle({ color: '#fff' }));
-        hintButton.on('pointerdown', async () => {
+        hintIcon.on('pointerover', () => hintIcon.setTint(0xFFD700));
+        hintIcon.on('pointerout', () => hintIcon.clearTint());
+        hintIcon.on('pointerdown', async () => {
             if (!currentKeyword) return;
             try {
                 const response = await fetch(`http://localhost:5000/api/random-keyword?keyword=${encodeURIComponent(currentKeyword)}`);
@@ -147,7 +178,7 @@ export class Game extends Scene
         let closeBtn = null;
         function showHintPopup(hint) {
             if (popupContainer) return; 
-            popupContainer = this.add.rectangle(512, 360, 1024, 720, 0x000000, 0.5)
+            popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
                 .setOrigin(0.5).setDepth(299);
             const popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
                 .setOrigin(0.5).setDepth(300);

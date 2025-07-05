@@ -1,4 +1,5 @@
 import React from 'react';
+import { EventBus } from './game/EventBus'; // adjust path if needed
 
 
 let signinPrompted = false;
@@ -28,6 +29,7 @@ function Signin({ onSignin }) {
       localStorage.setItem('currentUser', JSON.stringify(data.user));
       window.alert('Signin successful!');
       if (onSignin) onSignin(data.user);
+      EventBus.emit('signin-success');
     } else {
       window.alert(data.message || 'Signin failed');
     }

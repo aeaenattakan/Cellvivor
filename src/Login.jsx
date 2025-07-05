@@ -1,5 +1,6 @@
 // Example: src/Login.jsx
 import React from 'react';
+import { EventBus } from './game/EventBus'; // adjust path if needed
 
 let loginPrompted = false;
 
@@ -26,6 +27,7 @@ function Login({ onLogin }) {
     if (data.success) {
       localStorage.setItem('currentUser', JSON.stringify(data.user));
       if (onLogin) onLogin(data.user);
+      EventBus.emit('login-success');
     } else {
       window.alert(data.message || 'Login failed');
     }
