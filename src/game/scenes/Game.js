@@ -63,6 +63,10 @@ export class Game extends Scene
             }
         });
         console.log('User in localStorage:', localStorage.getItem('user'));
+        
+        // Add variable to store current hint
+        let currentHint = '';
+        
         // Helper to fetch a random keyword from the backend
         const getRandomKeyword = async () => {
             const response = await fetch('http://localhost:5000/api/random-keyword');
@@ -70,6 +74,9 @@ export class Game extends Scene
                 throw new Error('Failed to fetch keyword');
             }
             const data = await response.json();
+            // Store the hint for later use
+            currentHint = data.hint || 'No hint available';
+            console.log('[KEYWORD FETCHED]', { keyword: data.keyword, hint: data.hint });
             return data.keyword; // expecting { keyword: "..." }
         };
 
@@ -162,15 +169,10 @@ export class Game extends Scene
         hintIcon.on('pointerout', () => hintIcon.clearTint());
         hintIcon.on('pointerdown', async () => {
             if (!currentKeyword) return;
-            try {
-                const response = await fetch(`http://localhost:5000/api/random-keyword?keyword=${encodeURIComponent(currentKeyword)}`);
-                if (!response.ok) throw new Error('Failed to fetch hint');
-                const data = await response.json();
-                showHintPopup(data.hint || 'No hint available.');
-                hintUsed = true;
-            } catch (e) {
-                showHintPopup('Error fetching hint.');
-            }
+            console.log('[HINT BUTTON CLICKED] Current keyword:', currentKeyword);
+            console.log('[HINT DISPLAYED]', { keyword: currentKeyword, hint: currentHint });
+            showHintPopup(currentHint);
+            hintUsed = true;
         });
 
         let popupContainer = null;

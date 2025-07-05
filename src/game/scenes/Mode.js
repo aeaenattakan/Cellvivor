@@ -9,10 +9,11 @@ export class Mode extends Scene
     }
 
     preload() {
-        this.load.image('back', 'assets/back.png');
         this.load.image('magnifying', 'assets/magnifying.png');
         this.load.image('storymode', 'assets/storymode.png');      // Add this line
-        this.load.image('multimode', 'assets/multimode.png');      // Add this line
+        this.load.image('multimode', 'assets/multimode.png'); 
+        this.load.image('NewgameButton', 'assets/NewgameButton.png');
+        this.load.image('ContinueButton', 'assets/ContinueButton.png');     // Add this line
     }
 
     create ()
@@ -30,8 +31,7 @@ export class Mode extends Scene
         }).setOrigin(0.5).setDepth(100);
 
         // Add star images on both sides of the header
-        this.load.image('star', 'assets/star.png'); // Make sure star.png is preloaded in preload()
-        // If not, add: this.load.image('star', 'assets/star.png'); in preload()
+        this.load.image('star', 'assets/star.png');
 
         // Place stars to the left and right of the header
         const starOffsetX = 126;
@@ -48,15 +48,103 @@ export class Mode extends Scene
         // Center Y for both buttons
         const buttonY = this.cameras.main.height*0.55;
 
-        // Storyboard button on the left side
-        const storyboardBtn = this.add.image(this.cameras.main.width * 0.265, buttonY, 'storymode')
+        // // Storyboard button on the left side
+        // const storyboardBtn = this.add.image(this.cameras.main.width * 0.265, buttonY, 'storymode')
+        //     .setOrigin(0.5)
+        //     .setScale(0.145) // smaller size
+        //     .setInteractive({ useHandCursor: true })
+        //     .setDepth(50);
+        // storyboardBtn.on('pointerdown', () => {
+        //     window.open('/storyboard', '_blank');
+        // });
+        
+    const storyboardBtn = this.add.image(this.cameras.main.width * 0.265, buttonY, 'storymode')
+        .setOrigin(0.5)
+        .setScale(0.145)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(50);
+
+    storyboardBtn.on('pointerdown', () => {
+        if (this.popupContainer) return;
+        // Popup background
+        this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+            .setOrigin(0.5).setDepth(299);
+        // White popup box
+        const popupBox = this.add.rectangle(512, 320, 500, 250, 0xffffff, 1)
+            .setOrigin(0.5).setDepth(300);
+        // Popup text
+        this.popupText = this.add.text(512, 270, 'continue the story or start again?', {
+            fontSize: '28px',
+            color: '#222',
+            wordWrap: { width: 440 },
+            align: 'center'
+        }).setOrigin(0.5).setDepth(301);
+
+        // New Game Button
+        const newGameBtn = this.add.image(512 - 112, 390, 'NewgameButton')
             .setOrigin(0.5)
-            .setScale(0.145) // smaller size
-            .setInteractive({ useHandCursor: true })
-            .setDepth(50);
-        storyboardBtn.on('pointerdown', () => {
-            window.open('/storyboard', '_blank');
+            .setScale(0.1)
+            .setDepth(335)
+            .setInteractive({ useHandCursor: true });
+        newGameBtn.on('pointerdown', () => {
+            this.scene.start('Storyboard', { mode: 'new' });
+            // Cleanup popup
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            this.popupText.destroy();
+            newGameBtn.destroy();
+            continueBtn.destroy();
+            closeBtn.destroy();
+            this.popupContainer = null;
+            this.popupText = null;
         });
+
+        // Continue Button
+        const continueBtn = this.add.image(512 + 112, 390, 'ContinueButton')
+            .setOrigin(0.5)
+            .setScale(0.1)
+            .setDepth(335)
+            .setInteractive({ useHandCursor: true });
+        continueBtn.on('pointerdown', () => {
+            this.scene.start('Storyboard', { mode: 'continue' });
+            // Cleanup popup
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            this.popupText.destroy();
+            newGameBtn.destroy();
+            continueBtn.destroy();
+            closeBtn.destroy();
+            this.popupContainer = null;
+            this.popupText = null;
+        });
+
+        // "X" Close button at top right of popupBox
+        const closeBtn = this.add.text(
+            512 + 500 / 2 - 24, // right edge minus some padding
+            320 - 250 / 2 + 24, // top edge plus some padding
+            '✕',
+            {
+                fontSize: '32px',
+                color: '#888',
+                fontStyle: 'bold',
+                backgroundColor: '#fff',
+                padding: { left: 8, right: 8, top: 2, bottom: 2 },
+                borderRadius: 16,
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            this.popupText.destroy();
+            newGameBtn.destroy();
+            continueBtn.destroy();
+            closeBtn.destroy();
+            this.popupContainer = null;
+            this.popupText = null;
+        });
+    });
 
         // Multiplayer Mode button on the right side
         const multiplayerBtn = this.add.image(this.cameras.main.width * 0.715, buttonY, 'multimode')
