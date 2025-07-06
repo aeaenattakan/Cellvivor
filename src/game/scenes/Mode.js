@@ -87,16 +87,26 @@ export class Mode extends Scene
             .setDepth(335)
             .setInteractive({ useHandCursor: true });
         newGameBtn.on('pointerdown', () => {
-            this.scene.start('Storyboard', { mode: 'new' });
-            // Cleanup popup
-            this.popupContainer.destroy();
-            popupBox.destroy();
-            this.popupText.destroy();
-            newGameBtn.destroy();
-            continueBtn.destroy();
-            closeBtn.destroy();
-            this.popupContainer = null;
-            this.popupText = null;
+            // Get current user
+            const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
+            if (!user?._id) return;
+            // Reset progress to Chapter1
+            fetch('http://localhost:5000/progress/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user._id, scene: "Chapter1" })
+            }).then(() => {
+                this.scene.start('Chapter1');
+                // Cleanup popup
+                this.popupContainer.destroy();
+                popupBox.destroy();
+                this.popupText.destroy();
+                newGameBtn.destroy();
+                continueBtn.destroy();
+                closeBtn.destroy();
+                this.popupContainer = null;
+                this.popupText = null;
+            });
         });
 
         // Continue Button
@@ -106,16 +116,23 @@ export class Mode extends Scene
             .setDepth(335)
             .setInteractive({ useHandCursor: true });
         continueBtn.on('pointerdown', () => {
-            this.scene.start('Storyboard', { mode: 'continue' });
-            // Cleanup popup
-            this.popupContainer.destroy();
-            popupBox.destroy();
-            this.popupText.destroy();
-            newGameBtn.destroy();
-            continueBtn.destroy();
-            closeBtn.destroy();
-            this.popupContainer = null;
-            this.popupText = null;
+            const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
+            if (!user?._id) return;
+            fetch(`/progress/load/${user._id}`)
+                .then(res => res.json())
+                .then(data => {
+                    const sceneToStart = data.lastScene || "Chapter1";
+                    this.scene.start(sceneToStart);
+                    // Cleanup popup
+                    this.popupContainer.destroy();
+                    popupBox.destroy();
+                    this.popupText.destroy();
+                    newGameBtn.destroy();
+                    continueBtn.destroy();
+                    closeBtn.destroy();
+                    this.popupContainer = null;
+                    this.popupText = null;
+                });
         });
 
         // "X" Close button at top right of popupBox

@@ -41,7 +41,7 @@ const gameplaySchema = new mongoose.Schema({
   guesser: { type: String, required: true },
   mistakes: { type: Array, required: true },
   score: { type: Number, required: true },
-  
+  localScore: { type: Number, default: 0 },
 });
 const Gameplay = mongoose.models.Gameplay || mongoose.model('Gameplay', gameplaySchema);
 
@@ -257,6 +257,20 @@ app.get('/api/gameplay-score', async (req, res) => {
   }
 });
 //////////////////////////////////////////
+
+// Save progress (current chapter)
+app.post('/progress/save', async (req, res) => {
+  const { userId, scene } = req.body;
+  if (!userId || !scene) return res.status(400).json({ error: 'Missing userId or scene' });
+  await User.updateOne({ _id: userId }, { $set: { gameprogress: scene } });
+  res.sendStatus(200);
+});
+
+// Load progress (current chapter)
+app.get('/progress/load/:userId', async (req, res) => {
+  const user = await User.findById(req.params.userId);
+  res.json({ lastScene: user?.gameprogress || "Chapter1" });
+});
 
 app.use((req, res) => {
     res.status(404).send("Path not found");

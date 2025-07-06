@@ -1,35 +1,38 @@
-import { Boot } from './scenes/Boot';
-import { Game } from './scenes/Game';
-import { GameOver } from './scenes/GameOver';
-import { MainMenu } from './scenes/MainMenu';
 import Phaser from 'phaser';
+import { Boot } from './scenes/Boot';
 import { Preloader } from './scenes/Preloader';
+import { MainMenu } from './scenes/MainMenu';
 import { Mode } from './scenes/Mode';
+import { Game } from './scenes/Game';
 import { Storyboard } from './scenes/storyboard';
-
-// Find out more information about the Game Config at:
-// https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
+import { GameOver } from './scenes/GameOver';
+import { Chapter1 } from './scenes/Chapter1';
+// import { Chapter2 } from './scenes/Chapter2';
+// import { Chapter3 } from './scenes/Chapter3';
+// import { Chapter4 } from './scenes/Chapter4';
 const config = {
     type: Phaser.AUTO,
     width: 1024,
     height: 768,
     parent: 'game-container',
-    backgroundColor: '#028af8',
+    backgroundColor: '#91e3ff',
     scene: [
-        Boot,
-        Preloader,
-        MainMenu,
+        Boot,        // Only Boot is started automatically
+        Preloader,   // Boot will start Preloader
+        MainMenu,    // Preloader will start MainMenu
         Mode,
         Game,
         Storyboard,
-        GameOver
+        GameOver,
+        Chapter1,
+        // Chapter2,
+        // Chapter3,
+        // Chapter4,
     ]
 };
 
 const StartGame = (parent) => {
-
     return new Phaser.Game({ ...config, parent });
-
-}
+};
 
 export default StartGame;

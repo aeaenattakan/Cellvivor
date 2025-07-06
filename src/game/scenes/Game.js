@@ -142,6 +142,7 @@ export class Game extends Scene
                 // Only increment score if result is 'TT'
                 if (result === 'TT') {
                     localScore++;
+                    console.log('Current score on current game:', localScore);
                 }
                 await sendResultToDB(currentKeyword, result, localScore);
             }
@@ -226,6 +227,7 @@ export class Game extends Scene
                 if (remainingSeconds <= 0) {
                     this.timerEvent.remove();
                     this.changeScene();
+                    
                 }
             },
             callbackScope: this,
