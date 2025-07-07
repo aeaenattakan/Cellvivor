@@ -61,27 +61,27 @@ export function addStoryModeUI(scene, options = {}) {
             });
     });
 
-    // Skip before (bottom left)
-    scene.add.image(40, 700, 'skipbefore')
-        .setOrigin(0, 0.5)
-        .setScale(0.1)
-        .setDepth(120)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-            if (popupOverlay) return;
-            if (options.onSkipBefore) options.onSkipBefore();
-        });
+    // // Skip before (bottom left)
+    // scene.add.image(40, 700, 'skipbefore')
+    //     .setOrigin(0, 0.5)
+    //     .setScale(0.1)
+    //     .setDepth(120)
+    //     .setInteractive({ useHandCursor: true })
+    //     .on('pointerdown', () => {
+    //         if (popupOverlay) return;
+    //         if (options.onSkipBefore) options.onSkipBefore();
+    //     });
 
-    // Skip after (bottom right)
-    scene.add.image(984, 700, 'skipafter')
-        .setOrigin(1, 0.5)
-        .setScale(0.1)
-        .setDepth(120)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-            if (popupOverlay) return;
-            if (options.onSkipAfter) options.onSkipAfter();
-        });
+    // // Skip after (bottom right)
+    // scene.add.image(984, 700, 'skipafter')
+    //     .setOrigin(1, 0.5)
+    //     .setScale(0.1)
+    //     .setDepth(120)
+    //     .setInteractive({ useHandCursor: true })
+    //     .on('pointerdown', () => {
+    //         if (popupOverlay) return;
+    //         if (options.onSkipAfter) options.onSkipAfter();
+    //     });
 
     // Back arrow button (top left)
     const arrow = scene.add.text(60, 90, '<', {
