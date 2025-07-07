@@ -28,7 +28,13 @@ const config = {
         // Chapter2,
         // Chapter3,
         // Chapter4,
-    ]
+    ],
+      physics: {
+    default: 'arcade',
+    arcade: {
+      debug: false
+    }
+  }
 };
 
 const StartGame = (parent) => {

@@ -13,6 +13,11 @@ export class MainMenu extends Scene
     preload() {
         // ...other preload code...
         this.load.image('magnifying', 'assets/magnifying.png');
+            this.load.image('5.png', 'assets/5.png');
+            this.load.image('6.png', 'assets/6.png');
+            this.load.image('7.png', 'assets/7.png');
+            this.load.image('8.png', 'assets/8.png');
+            this.load.image('9.png', 'assets/9.png');
     }
 
     create ()
@@ -100,10 +105,6 @@ export class MainMenu extends Scene
             btnRect.on('pointerout', () => btnRect.setFillStyle(0x6067FE, 1));
             btnRect.on('pointerdown', btn.action);
         });
-
-        // Add a magnifying glass button on the top right, same size and Y as the logo/back button
-        // Make sure to preload the image in your preload() method:
-        // this.load.image('magnifying', 'assets/magnifying.png');
         const magnifyingBtn = this.add.image(this.cameras.main.width - 60, 80, 'magnifying')
             .setOrigin(0.5)
             .setScale(0.1)
@@ -111,41 +112,90 @@ export class MainMenu extends Scene
             .setInteractive({ useHandCursor: true });
 
         magnifyingBtn.on('pointerdown', () => {
-            // Prevent multiple popups
             if (this.popupContainer) return;
 
-            // Fullscreen dark background (69% transparent)
+            // Overlay
             this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.69)
-                .setOrigin(0.5).setDepth(199);
+            .setOrigin(0.5).setDepth(199)
+            .setInteractive({ useHandCursor: false });
 
-            // White popup box
-            const popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
-                .setOrigin(0.5).setDepth(200);
+            // Popup box
+            const popupBox = this.add.rectangle(512, 370, 850, 550, 0xffffff, 1)
+            .setOrigin(0.5).setDepth(200);
 
-            // Popup text
-            this.popupText = this.add.text(512, 320, 'Popup Content Here', {
-                fontSize: '28px',
-                color: '#222',
-                wordWrap: { width: 440 }
-            }).setOrigin(0.5).setDepth(201);
+            // Slides
+            const slides = ['5.png', '6.png', '7.png', '8.png', '9.png'];
+            let current = 0;
+            const popupDepth = 201;
 
-            // Close button
-            this.closeBtn = this.add.text(512, 410, 'Close', {
-                fontSize: '22px',
-                color: '#FFD700',
-                backgroundColor: '#333',
-                padding: { left: 16, right: 16, top: 8, bottom: 8 },
-                borderRadius: 8
-            }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+            let slideImage = this.add.image(512, 370, slides[current])
+            .setDisplaySize(850, 550)
+            .setDepth(popupDepth);
 
-            this.closeBtn.on('pointerdown', () => {
-                this.popupContainer.destroy();
-                popupBox.destroy();
-                this.popupText.destroy();
-                this.closeBtn.destroy();
-                this.popupContainer = null;
-                this.popupText = null;
-                this.closeBtn = null;
+            // Previous button
+            const prevBtn = this.add.text(192, 680, 'Previous', {
+            fontSize: '28px',
+            color: '#fff',
+            padding: { left: 20, right: 20, top: 10, bottom: 10 }
+            }).setOrigin(0.5).setDepth(popupDepth + 1).setInteractive({ useHandCursor: true });
+
+            // Next button
+            const nextBtn = this.add.text(832, 680, 'Next', {
+            fontSize: '28px',
+            color: '#fff',
+            padding: { left: 20, right: 20, top: 10, bottom: 10 }
+            }).setOrigin(0.5).setDepth(popupDepth + 1).setInteractive({ useHandCursor: true });
+
+            // Close popup helper
+            const closePopup = () => {
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            slideImage.destroy();
+            prevBtn.destroy();
+            nextBtn.destroy();
+            this.popupContainer = null;
+            };
+
+            function updateSlide() {
+            slideImage.setTexture(slides[current]);
+            prevBtn.setAlpha(current === 0 ? 0.5 : 1);
+            prevBtn.disableInteractive();
+            nextBtn.setAlpha(current === slides.length - 1 ? 0.5 : 1);
+            nextBtn.disableInteractive();
+            if (current > 0) prevBtn.setInteractive({ useHandCursor: true });
+            if (current < slides.length - 1) nextBtn.setInteractive({ useHandCursor: true });
+            }
+
+            prevBtn.on('pointerdown', () => {
+            if (current > 0) {
+                current--;
+                updateSlide();
+            }
+            });
+            nextBtn.on('pointerdown', () => {
+            if (current < slides.length - 1) {
+                current++;
+                updateSlide();
+            } else if (current === slides.length - 1) {
+                // Close on last page next click
+                closePopup();
+            }
+            });
+
+            updateSlide();
+
+            // Close when clicking overlay (but not popup box)
+            this.popupContainer.on('pointerdown', (pointer) => {
+            // Only close if click is outside popupBox
+            const bounds = popupBox.getBounds();
+            if (
+                pointer.x < bounds.left ||
+                pointer.x > bounds.right ||
+                pointer.y < bounds.top ||
+                pointer.y > bounds.bottom
+            ) {
+                closePopup();
+            }
             });
         });
 
