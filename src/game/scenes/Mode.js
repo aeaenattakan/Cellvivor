@@ -80,27 +80,26 @@ export class Mode extends Scene
             .setScale(0.1)
             .setDepth(335)
             .setInteractive({ useHandCursor: true });
-        newGameBtn.on('pointerdown', () => {
+        newGameBtn.on('pointerdown', async () => {
             // Get current user
             const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
             if (!user?._id) return;
             // Reset progress to Chapter1
-            fetch('http://localhost:5000/progress/save', {
+            await fetch('http://localhost:5000/progress/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user._id, scene: "Chapter1" })
-            }).then(() => {
-                this.scene.start('Chapter1');
-                // Cleanup popup
-                this.popupContainer.destroy();
-                popupBox.destroy();
-                this.popupText.destroy();
-                newGameBtn.destroy();
-                continueBtn.destroy();
-                closeBtn.destroy();
-                this.popupContainer = null;
-                this.popupText = null;
             });
+            this.scene.start('Chapter1');
+            // Cleanup popup
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            this.popupText.destroy();
+            newGameBtn.destroy();
+            continueBtn.destroy();
+            closeBtn.destroy();
+            this.popupContainer = null;
+            this.popupText = null;
         });
 
         // Continue Button
@@ -109,24 +108,22 @@ export class Mode extends Scene
             .setScale(0.1)
             .setDepth(335)
             .setInteractive({ useHandCursor: true });
-        continueBtn.on('pointerdown', () => {
+        continueBtn.on('pointerdown', async () => {
             const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
             if (!user?._id) return;
-            fetch(`/progress/load/${user._id}`)
-                .then(res => res.json())
-                .then(data => {
-                    const sceneToStart = data.lastScene || "Chapter1";
-                    this.scene.start(sceneToStart);
-                    // Cleanup popup
-                    this.popupContainer.destroy();
-                    popupBox.destroy();
-                    this.popupText.destroy();
-                    newGameBtn.destroy();
-                    continueBtn.destroy();
-                    closeBtn.destroy();
-                    this.popupContainer = null;
-                    this.popupText = null;
-                });
+            const res = await fetch(`/progress/load/${user._id}`);
+            const data = await res.json();
+            const sceneToStart = data.lastScene || "Chapter1";
+            this.scene.start(sceneToStart);
+            // Cleanup popup
+            this.popupContainer.destroy();
+            popupBox.destroy();
+            this.popupText.destroy();
+            newGameBtn.destroy();
+            continueBtn.destroy();
+            closeBtn.destroy();
+            this.popupContainer = null;
+            this.popupText = null;
         });
 
         // "X" Close button at top right of popupBox
@@ -229,13 +226,13 @@ gameModeBtn.on('pointerdown', () => {
     hinterBtn.on('pointerdown', () => {
         closePopup();
         // Go to game page as Hinter (pass role if needed)
-        this.scene.start('Game', { hinter : userId });
+        this.scene.start('Game'/*, { hinter : currentUser._id }*/);
     });
 
     guesserBtn.on('pointerdown', () => {
         closePopup();
         // Go to game page as Guesser (pass role if needed)
-        this.scene.start('Game', { guesser : userId});
+        this.scene.start('Game'  /*,{guesser : currentUser._id}*/ );
     });
 });
 

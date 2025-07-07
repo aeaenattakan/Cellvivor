@@ -91,18 +91,13 @@ export class Game extends Scene
         }).setOrigin(0.5);
 
 
-        // Track result and hint usage
         let result = '';
         let hintUsed = false;
-        // อย่าลืมทำให้ create new gameplay result ใหม่ทุกครั้งที่เล่น 
         async function sendResultToDB(keyword, resultValue, scoreValue) {
             try {
-                // Use 'currentUser' for consistency with MainMenu and login
                 const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
                 const userId = user?._id;
-                // Compose the mistake entry as 'resultValue:keyword'
                 const mistakeEntry = `${resultValue}:${keyword}`;
-                // Debug log all values before sending
                 console.log('DEBUG: Sending gameplay result', { userId, mistakeEntry, user });
                 if (!userId || !keyword || !resultValue) {
                     console.error('ERROR: Missing userId, keyword, or result', { userId, keyword, resultValue });
