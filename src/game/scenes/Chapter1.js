@@ -3,7 +3,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { addStoryModeUI } from './UIscene';
 import DialogueUI from './DialogueUI';
-import Chapter2 from './Chapter2';
+//import Chapter2 from './Chapter2';
 
 export class Chapter1 extends Scene {
   constructor() {
