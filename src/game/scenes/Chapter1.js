@@ -17,7 +17,11 @@ export class Chapter1 extends Scene {
     this.bgSteps = [
       'Chapter1scene2',
       'bone',
+      'bone1',
+      'bone2',
       'Bonemarrow',
+      'noobysleep',
+      'noobywake',
       'CellBorn',
       'Blood'
     ];
@@ -27,9 +31,13 @@ export class Chapter1 extends Scene {
   preload() {
     this.load.image('Chapter1scene1', 'assets/Chapter1scene1.png'); // Cover page
     this.load.image('Chapter1scene2', 'assets/Chapter1scene2.png'); // First background
-    this.load.image('bone', 'assets/bone.png');
+    this.load.image('bone', 'assets/Bone.png');
+    this.load.image('bone1', 'assets/Bone1.png');
+    this.load.image('bone2', 'assets/Bone2.png');
     this.load.image('Bonemarrow', 'assets/Bonemarrow.png');
-    this.load.image('CellBorn', 'assets/CellBorn.gif');
+    this.load.image('noobysleep', 'assets/noobysleep.png');
+    this.load.image('noobywake', 'assets/noobywake.png');
+    this.load.video('CellBorn', 'assets/CellBorn.mp4');
     this.load.image('Blood', 'assets/Blood.gif');
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
@@ -76,13 +84,16 @@ export class Chapter1 extends Scene {
     });
     // Prepare dialogue script with sceneStep for background changes
     this.script = [
-      { speaker: "Narrator", text: "Welcome to your journey inside the body." , sceneStep: 1},
-     { speaker: "Guide", text: "Let’s begin in the bloodstream..." },
-     { speaker: "Guide", text: "See the cells moving? That's life in action.", sceneStep: 1 },
-      { speaker: "Narrator", text: "Now, let's look at the bone structure.", sceneStep: 2 },
-      { speaker: "Guide", text: "And here, deep inside, is the marrow.", sceneStep: 3 },
-      { speaker: "Narrator", text: "Life begins at a cellular level.", sceneStep: 4 },
-      { speaker: "Narrator", text: "Cells multiply, evolve, and form blood.", sceneStep: 5 }
+      { speaker: "Narrator", text: "Welcome to your journey inside the body, This is CELLVIVOR." }, //once upon a time
+    // bone
+    { speaker: "Narrator", text: " a vast network of cells works relentlessly to keep us alive.", sceneStep: 2 },
+    { speaker: "Narrator", text: "And here, deep inside, is the marrow.", sceneStep: 3 },
+    { speaker: "Narrator", text: "The marrow is bustling with activity.", sceneStep: 4 }, // stays on same scene for 2nd click
+    {speaker: "Narrator", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
+    { speaker: "Narrator", text: "You are Noobyzom", sceneStep: 6 }, // noobywake
+       { speaker: "Narrator", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
+      { speaker: "Narrator", text: "Life begins at a cellular level.", sceneStep: 8 },
+      { speaker: "Narrator", text: "Cells multiply, evolve, and form blood.", sceneStep: 9 }
     ];
 
     // Start button click handler
@@ -181,7 +192,6 @@ showCurrentLine() {
     }
     const nextLine = this.script[this.currentLine];
 
-    // Set the callback BEFORE starting the dialogue
     this.dialogueUI.onLineComplete = () => {
         this.currentLine++;
         if (this.currentLine >= this.script.length) {
@@ -196,7 +206,45 @@ showCurrentLine() {
             this.bgSteps[followingLine.sceneStep]
         ) {
             this.bgStepIndex = followingLine.sceneStep;
-            this.background.setTexture(this.bgSteps[this.bgStepIndex]);
+
+            // Remove previous background
+            if (this.background) {
+                this.background.destroy();
+                this.background = null;
+            }
+            if (this.bgVideo) {
+                this.bgVideo.destroy();
+                this.bgVideo = null;
+            }
+
+            const bgKey = this.bgSteps[this.bgStepIndex];
+            // If the asset is a video (loaded with this.load.video), use video
+            if (this.cache.video.exists(bgKey)) {
+                this.bgVideo = this.add.video(0, 0, bgKey)
+                    .setOrigin(0, 0)
+                    .setDepth(0);
+
+                // Wait for the video to be ready before sizing
+                this.bgVideo.on('play', () => {
+                    const vidWidth = this.bgVideo.video.videoWidth;
+                    const vidHeight = this.bgVideo.video.videoHeight;
+                    const canvasWidth = this.sys.game.config.width;
+                    const canvasHeight = this.sys.game.config.height;
+
+                    // Scale to fit canvas while maintaining aspect ratio
+                    let scale = Math.min(canvasWidth / vidWidth, canvasHeight / vidHeight);
+                    this.bgVideo.setDisplaySize(vidWidth * scale, vidHeight * scale);
+                });
+
+                this.bgVideo.play(true);
+                this.bgVideo.setLoop(true);
+            } else {
+                // Otherwise, use image
+                this.background = this.add.image(0, 0, bgKey)
+                    .setOrigin(0, 0)
+                    .setDepth(0)
+                    .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+            }
         }
         this.showCurrentLine();
     };

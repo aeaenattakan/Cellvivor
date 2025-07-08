@@ -15,7 +15,7 @@ class DialogueUI {
 
     createDialogueBox() {
         const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x000000, 0.8);
+        graphics.fillStyle(0x000000, 1);
         graphics.fillRect(50, this.scene.cameras.main.height - 150, this.scene.cameras.main.width - 100, 100);
 
         this.dialogueBox = graphics;
