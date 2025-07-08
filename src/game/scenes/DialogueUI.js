@@ -14,18 +14,23 @@ class DialogueUI {
     }
 
     createDialogueBox() {
+        // Destroy previous UI elements if they exist
+        if (this.dialogueBox) this.dialogueBox.destroy();
+        if (this.speakerText) this.speakerText.destroy();
+        if (this.text) this.text.destroy();
+
         const graphics = this.scene.add.graphics();
-        graphics.fillStyle(0x000000, 1);
+        graphics.fillStyle(0x000000, 0.7);
         graphics.fillRect(50, this.scene.cameras.main.height - 150, this.scene.cameras.main.width - 100, 100);
 
         this.dialogueBox = graphics;
 
-        this.speakerText = this.scene.add.text(60, this.scene.cameras.main.height - 140, '', {
+        this.speakerText = this.scene.add.text(60, this.scene.cameras.main.height - 145, '', {
             fontSize: '20px',
             fill: '#ffffff'
         });
 
-        this.text = this.scene.add.text(60, this.scene.cameras.main.height - 100, '', {
+        this.text = this.scene.add.text(60, this.scene.cameras.main.height - 123, '', {
             fontSize: '16px',
             fill: '#ffffff',
             wordWrap: { width: this.scene.cameras.main.width - 120 }
@@ -41,6 +46,10 @@ class DialogueUI {
     }
 
     showLine(index) {
+        // Always clear previous text before showing a new line
+        if (this.speakerText) this.speakerText.setText('');
+        if (this.text) this.text.setText('');
+
         const line = this.currentDialogue[index];
         if (!line) return;
 

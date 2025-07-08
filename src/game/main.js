@@ -7,9 +7,8 @@ import { Game } from './scenes/Game';
 import { Storyboard } from './scenes/storyboard';
 import { GameOver } from './scenes/GameOver';
 import { Chapter1 } from './scenes/Chapter1';
-// import { Chapter2 } from './scenes/Chapter2';
-// import { Chapter3 } from './scenes/Chapter3';
-// import { Chapter4 } from './scenes/Chapter4';
+//import { Chapter1game } from './scenes/Chapter1game';
+
 const config = {
     type: Phaser.AUTO,
     width: 1024,
@@ -25,9 +24,7 @@ const config = {
         Storyboard,
         GameOver,
         Chapter1,
-        // Chapter2,
-        // Chapter3,
-        // Chapter4,
+        //Chapter1game,
     ],
       physics: {
     default: 'arcade',

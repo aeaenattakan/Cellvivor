@@ -23,7 +23,15 @@ export class Chapter1 extends Scene {
       'noobysleep',
       'noobywake',
       'CellBorn',
-      'Blood'
+      'Blood',
+      'body',
+      'bloodvess',
+      'noobywalkyellow',
+      'RBCIntro',
+      'RBCwalkpink',
+      'BloodVessel',
+      'BloodVesselA',
+      'BloodVesselB'
     ];
     this.bgStepIndex = 0;
   }
@@ -39,6 +47,15 @@ export class Chapter1 extends Scene {
     this.load.image('noobywake', 'assets/noobywake.png');
     this.load.video('CellBorn', 'assets/CellBorn.mp4');
     this.load.video('Blood', 'assets/Blood.mp4');
+    this.load.video('body','assets/body.mp4')
+    this.load.video('bloodvess', 'assets/bloodvess.mp4');
+    this.load.video('noobywalkyellow', 'assets/noobywalkyellow.mp4');
+    this.load.video('RBCIntro', 'assets/RBCIntro.mp4');
+    this.load.video('RBCwalkpink', 'assets/RBCwalkpink.mp4');
+    this.load.image('BloodVessel', 'assets/BloodVessel.png');
+    this.load.image('BloodVesselA', 'assets/BloodVesselA.png');
+    this.load.image('BloodVesselB', 'assets/BloodVesselB.png');
+
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     // this.load.image('skipafter', 'assets/skipafter.png');
@@ -91,13 +108,24 @@ export class Chapter1 extends Scene {
     { speaker: "Narrator", text: "The marrow is bustling with activity.", sceneStep: 4 }, // stays on same scene for 2nd click
     {speaker: "Noobyzom", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
     { speaker: "Narrator", text: "You are Noobyzom", sceneStep: 6 }, // noobywake
-       { speaker: "Narrator", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
-      { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero — perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
-      { speaker: "Narrator", text: "Your journey starts here. From the bone marrow, you will enter the bloodstream through the vessels.", sceneStep: 8 },
-      { speaker: "Narrator", text: "Your mission: Deliver oxygen to every cell in the body and maintain life.", sceneStep: 8 },
-        { speaker: "Narrator", text: "This is not just a task — it's the purpose of your existence.", sceneStep: 8 },
-      //{ speaker: "Narrator", text: "Cells multiply, evolve, and form blood.", sceneStep: 9 }
-    ];
+    { speaker: "Narrator", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
+    { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero", sceneStep: 8 },
+    { speaker: "Narrator", text: "  perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
+   // { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero — perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
+    { speaker: "Narrator", text: "Your journey starts here. From the bone marrow, \nyou will enter the bloodstream through the vessels.", sceneStep: 10 },//bloodvess 
+    { speaker: "Narrator", text: "Your mission: Deliver oxygen to every cell in the body and maintain life.", sceneStep: 9 },
+    { speaker: "Narrator", text: "This is not just a task — it's the purpose of your existence.", sceneStep: 11 },
+    { speaker: "Senior Red Blood Cell:", text: " Ah, fresh from the marrow, huh? I’m your senior — a well-traveled, oxygen-delivering expert.", sceneStep:  12},
+    { speaker: "Senior Red Blood Cell", text: " And lucky you — I’ve got a heart map just for you.", sceneStep:  12},
+    { speaker: "Noobyzom", text: "“A map? Wait… where exactly is the heart?", sceneStep:  11},
+    { speaker: "Senior Red Blood Cell", text: "Haha, rookie move! Don't worry, you’ll learn quickly.\nThe heart is our command center — the engine that pumps us through the body.", sceneStep:  13},
+    { speaker: "Senior Red Blood Cell", text: " Now listen up, I’ll walk you through the main routes: \nthe atria, ventricles, arteries, veins… It’s like a highway system in here!", sceneStep:  14},
+    { speaker: "☆Arteries☆", text: "Arteries have thick, elastic walls that allow them to handle the high pressure of blood being pumped directly from the heart. They do not contain valves, and blood pulses strongly through them with each heartbeat. ", sceneStep:  15},
+    { speaker: "☆Veins☆", text: "Veins have thinner walls than arteries and carry blood under lower pressure. They contain valves to prevent the backward flow of blood, and blood movement is aided by surrounding muscles and these valves. ", sceneStep:  16},
+    { speaker: "☆Capillaries☆", text: "Capillaries are the smallest blood vessels, with walls only one cell thick. They are the sites where the exchange of gases, nutrients, and waste occurs between the blood and body cells. ", sceneStep:  14},
+   // { speaker: "Red Blood Cell", text: "Welcome to your new life, red blood cell rookie!", sceneStep:  10},
+  ];
+
 
     // Start button click handler
     this.startButton.on('pointerdown', () => {
@@ -123,27 +151,38 @@ export class Chapter1 extends Scene {
 
     if (!this.dialogueUI) {
       this.dialogueUI = new DialogueUI(this);
-    //   // Add NEXT and BACK buttons
-    // const nextButton = this.add.text(900, 680, '▶ Next', {
-    //   fontSize: '20px',
-    //   fill: '#ffffff',
-    //   backgroundColor: '#333',
-    //   padding: { left: 10, right: 10, top: 5, bottom: 5 }
-    // }).setInteractive().setDepth(1000);
+    }
 
-    // nextButton.on('pointerdown', () => {
-    //   this.dialogueUI.advance();
-    // });
-//820, 680
-    const NextButton = this.add.text(900, 680, '◀ Next', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      backgroundColor: '#333',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
+    // Remove old buttons if they exist
+    if (this.nextButton) this.nextButton.destroy();
+    if (this.backButton) this.backButton.destroy();
+
+    // Add Next button
+    this.nextButton = this.add.text(900, 680, '▶ Next', {
+        fontSize: '20px',
+        fill: '#ffffff',
+        backgroundColor: '#333',
+        padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setInteractive().setDepth(1000);
 
-    NextButton.on('pointerdown', () => {
-      this.dialogueUI.goBack();
+    this.nextButton.on('pointerdown', () => {
+        this.dialogueUI.advance();
+    });
+
+    // Add Back button
+    this.backButton = this.add.text(820, 680, '◀ Back', {
+        fontSize: '20px',
+        fill: '#ffffff',
+        backgroundColor: '#333',
+        padding: { left: 10, right: 10, top: 5, bottom: 5 }
+    }).setInteractive().setDepth(1000);
+
+    this.backButton.on('pointerdown', () => {
+        if (this.currentLine > 0) {
+            this.currentLine -= 2; // Go back one line (since showCurrentLine will increment)
+            if (this.currentLine < 0) this.currentLine = 0;
+            this.showCurrentLine();
+        }
     });
 
     // Keybinds for keyboard users
@@ -157,10 +196,12 @@ export class Chapter1 extends Scene {
       this.dialogueUI.advance();
     });
     this.input.keyboard.on('keydown-LEFT', () => {
-      this.dialogueUI.goBack();
+        if (this.currentLine > 0) {
+            this.currentLine -= 2;
+            if (this.currentLine < 0) this.currentLine = 0;
+            this.showCurrentLine();
+        }
     });
-
-    }
 
     this.currentLine = 0;
     this.bgStepIndex = 0;
@@ -175,13 +216,6 @@ export class Chapter1 extends Scene {
       ) {
         if (this.dialogueUI.advance) this.dialogueUI.advance();
       }
-
-    this.input.keyboard.on('keydown-RIGHT', () => {
-      if (this.dialogueUI) this.dialogueUI.advance();
-    });
-    this.input.keyboard.on('keydown-LEFT', () => {
-      if (this.dialogueUI) this.dialogueUI.goBack();
-    });
     });
 
     // Start the first line
@@ -189,69 +223,190 @@ export class Chapter1 extends Scene {
 }
 
 showCurrentLine() {
+    // Always use this function to step through the script
     if (this.currentLine >= this.script.length) {
         // End of all dialogue
+        this.scene.start('Chapter1game'); // Transition to Chapter1game scene
         return;
     }
     const nextLine = this.script[this.currentLine];
 
     this.dialogueUI.onLineComplete = () => {
         this.currentLine++;
-        if (this.currentLine >= this.script.length) {
-            // End of all dialogue
-            return;
-        }
-        const followingLine = this.script[this.currentLine];
-        // If sceneStep is present and different, change background
-        if (
-            typeof followingLine.sceneStep === 'number' &&
-            followingLine.sceneStep !== this.bgStepIndex &&
-            this.bgSteps[followingLine.sceneStep]
-        ) {
-            this.bgStepIndex = followingLine.sceneStep;
-
-            // Remove previous background
-            if (this.background) {
-                this.background.destroy();
-                this.background = null;
-            }
-            if (this.bgVideo) {
-                this.bgVideo.destroy();
-                this.bgVideo = null;
-            }
-
-            const bgKey = this.bgSteps[this.bgStepIndex];
-            // If the asset is a video (loaded with this.load.video), use video
-            if (this.cache.video.exists(bgKey)) {
-                this.bgVideo = this.add.video(0, 0, bgKey)
-                    .setOrigin(0, 0)
-                    .setDepth(0);
-
-                // Wait for the video to be ready before sizing
-                this.bgVideo.on('play', () => {
-                    const vidWidth = this.bgVideo.video.videoWidth;
-                    const vidHeight = this.bgVideo.video.videoHeight;
-                    const canvasWidth = this.sys.game.config.width;
-                    const canvasHeight = this.sys.game.config.height;
-
-                    // Scale to fit canvas while maintaining aspect ratio
-                    let scale = Math.min(canvasWidth / vidWidth, canvasHeight / vidHeight);
-                    this.bgVideo.setDisplaySize(vidWidth * scale, vidHeight * scale);
-                });
-
-                this.bgVideo.play(true);
-                this.bgVideo.setLoop(true);
-            } else {
-                // Otherwise, use image
-                this.background = this.add.image(0, 0, bgKey)
-                    .setOrigin(0, 0)
-                    .setDepth(0)
-                    .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
-            }
-        }
         this.showCurrentLine();
     };
 
-    this.dialogueUI.startDialogue([nextLine]);
+    // Handle background/video changes
+    if (
+        typeof nextLine.sceneStep === 'number' &&
+        nextLine.sceneStep !== this.bgStepIndex &&
+        this.bgSteps[nextLine.sceneStep]
+    ) {
+        this.bgStepIndex = nextLine.sceneStep;
+
+        // Remove previous background
+        if (this.background) {
+            this.background.destroy();
+            this.background = null;
+        }
+        if (this.bgVideo) {
+            this.bgVideo.destroy();
+            this.bgVideo = null;
+        }
+
+        const bgKey = this.bgSteps[this.bgStepIndex];
+        // If the asset is a video (loaded with this.load.video), use video
+        if (this.cache.video.exists(bgKey)) {
+            this.bgVideo = this.add.video(0, 0, bgKey)
+                .setOrigin(0, 0)
+                .setDepth(0);
+
+            // Wait for the video to be ready before sizing
+            this.bgVideo.on('play', () => {
+                const vidWidth = this.bgVideo.video.videoWidth;
+                const vidHeight = this.bgVideo.video.videoHeight;
+                const canvasWidth = this.sys.game.config.width;
+                const canvasHeight = this.sys.game.config.height;
+
+                // Scale to fit canvas while maintaining aspect ratio
+                let scale = Math.min(canvasWidth / vidWidth, canvasHeight / vidHeight);
+                this.bgVideo.setDisplaySize(vidWidth * scale, vidHeight * scale);
+            });
+
+            this.bgVideo.play(true);
+            this.bgVideo.setLoop(true);
+        } else {
+            // Otherwise, use image
+            this.background = this.add.image(0, 0, bgKey)
+                .setOrigin(0, 0)
+                .setDepth(0)
+                .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+        }
+    }
+
+    // Show/hide Back button
+    if (this.backButton) {
+        this.backButton.setVisible(this.currentLine > 0);
+    }
+
+    // --- POPUP LOGIC ---
+    if (
+        nextLine.speaker === "Senior Red Blood Cell" &&
+        nextLine.text.includes("heart map")
+    ) {
+        this.dialogueUI.startDialogue([nextLine]);
+
+        // Show popup after a short delay to allow dialogue to appear
+        this.time.delayedCall(600, () => {
+            if (this.popupContainer) return;
+            this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+              .setOrigin(0.5).setDepth(299).setInteractive();
+            const popupBox = this.add.rectangle(512, 320, 500, 200, 0xc7c7c7, 1)
+              .setOrigin(0.5).setDepth(300).setInteractive();
+            this.popupBook = this.add.image(332, 320, 'book')
+              .setOrigin(0.5)
+              .setDisplaySize(80, 80)
+              .setDepth(301);
+            this.popupText = this.add.text(547, 320, "You received a heart map!\nUse it to navigate the body.", {
+              fontSize: '28px',
+              color: '#222',
+              wordWrap: { width: 340 }
+            }).setOrigin(0.5).setDepth(301);
+
+            // Close popup on click outside the white box
+            this.popupContainer.on('pointerdown', (pointer) => {
+              // If click is outside the popupBox area, close
+              const px = pointer.x, py = pointer.y;
+              if (
+                px < popupBox.x - popupBox.width / 2 ||
+                px > popupBox.x + popupBox.width / 2 ||
+                py < popupBox.y - popupBox.height / 2 ||
+                py > popupBox.y + popupBox.height / 2
+              ) {
+                this.popupContainer.destroy();
+                popupBox.destroy();
+                this.popupBook.destroy();
+                this.popupText.destroy();
+                this.popupContainer = null;
+                this.popupBook = null;
+                this.popupText = null;
+              }
+            });
+
+            // Also close popup on next dialogue advance
+            const closePopup = () => {
+              if (this.popupContainer) this.popupContainer.destroy();
+              if (popupBox) popupBox.destroy();
+              if (this.popupBook) this.popupBook.destroy();
+              if (this.popupText) this.popupText.destroy();
+              this.popupContainer = null;
+              this.popupBook = null;
+              this.popupText = null;
+            };
+            // Remove previous listener to avoid stacking
+            this.input.off('pointerdown', closePopup, this);
+            this.input.on('pointerdown', closePopup, this);
+            this.dialogueUI.onLineComplete = () => {
+              closePopup();
+              this.currentLine++;
+              this.showCurrentLine();
+            };
+        });
+    } else if (
+        nextLine.speaker === "Senior Red Blood Cell" &&
+        nextLine.text.includes("main routes")
+    ) {
+        this.dialogueUI.startDialogue([nextLine]);
+
+        // Show popup for "main routes"
+        this.time.delayedCall(600, () => {
+            if (this.popupContainer) return;
+            this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+              .setOrigin(0.5).setDepth(299).setInteractive();
+            const popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
+              .setOrigin(0.5).setDepth(300).setInteractive();
+            this.popupText = this.add.text(512, 320, "Quest 1:Your first mission is to understand \n“blood vessels” before you begin your long journey!\n(●ˇ∀ˇ●)", {
+              fontSize: '28px',
+              color: '#222',
+              align: 'center',
+              wordWrap: { width: 440 }
+            }).setOrigin(0.5).setDepth(301);
+
+            // Close popup on click outside the white box
+            this.popupContainer.on('pointerdown', (pointer) => {
+              const px = pointer.x, py = pointer.y;
+              if (
+                px < popupBox.x - popupBox.width / 2 ||
+                px > popupBox.x + popupBox.width / 2 ||
+                py < popupBox.y - popupBox.height / 2 ||
+                py > popupBox.y + popupBox.height / 2
+              ) {
+                this.popupContainer.destroy();
+                popupBox.destroy();
+                this.popupText.destroy();
+                this.popupContainer = null;
+                this.popupText = null;
+              }
+            });
+
+            // Also close popup on next dialogue advance
+            const closePopup = () => {
+              if (this.popupContainer) this.popupContainer.destroy();
+              if (popupBox) popupBox.destroy();
+              if (this.popupText) this.popupText.destroy();
+              this.popupContainer = null;
+              this.popupText = null;
+            };
+            this.input.off('pointerdown', closePopup, this);
+            this.input.on('pointerdown', closePopup, this);
+            this.dialogueUI.onLineComplete = () => {
+              closePopup();
+              this.currentLine++;
+              this.showCurrentLine();
+            };
+        });
+    } else {
+        this.dialogueUI.startDialogue([nextLine]);
+    }
 }
 }
