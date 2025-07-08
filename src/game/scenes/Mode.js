@@ -109,21 +109,22 @@ export class Mode extends Scene
             .setDepth(335)
             .setInteractive({ useHandCursor: true });
         continueBtn.on('pointerdown', async () => {
-            const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
-            if (!user?._id) return;
-            const res = await fetch(`/progress/load/${user._id}`);
-            const data = await res.json();
-            const sceneToStart = data.lastScene || "Chapter1";
-            this.scene.start(sceneToStart);
-            // Cleanup popup
-            this.popupContainer.destroy();
-            popupBox.destroy();
-            this.popupText.destroy();
-            newGameBtn.destroy();
-            continueBtn.destroy();
-            closeBtn.destroy();
-            this.popupContainer = null;
-            this.popupText = null;
+            // const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
+            // if (!user?._id) return;
+            // const res = await fetch(`/progress/load/${user._id}`);
+            // const data = await res.json();
+            // const sceneToStart = data.lastScene || "Chapter1";
+            // this.scene.start(sceneToStart);
+            // // Cleanup popup
+            // this.popupContainer.destroy();
+            // popupBox.destroy();
+            // this.popupText.destroy();
+            // newGameBtn.destroy();
+            // continueBtn.destroy();
+            // closeBtn.destroy();
+            // this.popupContainer = null;
+            // this.popupText = null;
+             this.scene.start('Chapter1');
         });
 
         // "X" Close button at top right of popupBox
