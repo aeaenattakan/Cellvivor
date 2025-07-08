@@ -38,7 +38,7 @@ export class Chapter1 extends Scene {
     this.load.image('noobysleep', 'assets/noobysleep.png');
     this.load.image('noobywake', 'assets/noobywake.png');
     this.load.video('CellBorn', 'assets/CellBorn.mp4');
-    this.load.image('Blood', 'assets/Blood.gif');
+    this.load.video('Blood', 'assets/Blood.mp4');
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     // this.load.image('skipafter', 'assets/skipafter.png');
@@ -84,16 +84,19 @@ export class Chapter1 extends Scene {
     });
     // Prepare dialogue script with sceneStep for background changes
     this.script = [
-      { speaker: "Narrator", text: "Welcome to your journey inside the body, This is CELLVIVOR." }, //once upon a time
+      { speaker: "Narrator", text: 'Welcome to your journey inside the body, This is "CELLVIVOR".' }, //once upon a time
     // bone
     { speaker: "Narrator", text: " a vast network of cells works relentlessly to keep us alive.", sceneStep: 2 },
     { speaker: "Narrator", text: "And here, deep inside, is the marrow.", sceneStep: 3 },
     { speaker: "Narrator", text: "The marrow is bustling with activity.", sceneStep: 4 }, // stays on same scene for 2nd click
-    {speaker: "Narrator", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
+    {speaker: "Noobyzom", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
     { speaker: "Narrator", text: "You are Noobyzom", sceneStep: 6 }, // noobywake
        { speaker: "Narrator", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
-      { speaker: "Narrator", text: "Life begins at a cellular level.", sceneStep: 8 },
-      { speaker: "Narrator", text: "Cells multiply, evolve, and form blood.", sceneStep: 9 }
+      { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero — perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
+      { speaker: "Narrator", text: "Your journey starts here. From the bone marrow, you will enter the bloodstream through the vessels.", sceneStep: 8 },
+      { speaker: "Narrator", text: "Your mission: Deliver oxygen to every cell in the body and maintain life.", sceneStep: 8 },
+        { speaker: "Narrator", text: "This is not just a task — it's the purpose of your existence.", sceneStep: 8 },
+      //{ speaker: "Narrator", text: "Cells multiply, evolve, and form blood.", sceneStep: 9 }
     ];
 
     // Start button click handler
