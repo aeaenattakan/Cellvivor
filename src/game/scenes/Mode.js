@@ -1,5 +1,11 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import io from 'socket.io-client';
+const socket = io('http://localhost:5000'); // Adjust as needed
+
+function generateRoomCode() {
+    return Math.random().toString(36).substr(2, 5).toUpperCase();
+}
 
 export class Mode extends Scene
 {
@@ -163,80 +169,207 @@ const gameModeBtn = this.add.image(this.cameras.main.width * 0.715, buttonY, 'mu
 
 gameModeBtn.on('pointerdown', () => {
     if (this.popupContainer) return;
-    // Popup background
-    this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+
+    // Overlay
+    this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.7)
         .setOrigin(0.5).setDepth(299);
-    // White popup box
-    const popupBox = this.add.rectangle(512, 320, 500, 250, 0xffffff, 1)
+
+    // Popup box
+    const popupBox = this.add.rectangle(512, 360, 600, 420, 0xffffff, 1)
         .setOrigin(0.5).setDepth(300);
-    // Popup text
-    const popupText = this.add.text(512, 270, 'Please choose your role', {
-        fontSize: '28px',
-        color: '#222',
-        wordWrap: { width: 440 },
+
+    // Title
+    const title = this.add.text(512, 220, "Multiplayer Mode", {
+        fontSize: '38px',
+        color: '#fa821a',
+        fontStyle: 'bold',
         align: 'center'
     }).setOrigin(0.5).setDepth(301);
 
-    // Hinter Button
-    const hinterBtn = this.add.text(512 - 100, 370, 'Hinter', {
+    // Info message
+    let infoMsg = this.add.text(512, 260, "", {
+        fontSize: '22px',
+        color: '#333',
+        align: 'center',
+        wordWrap: { width: 540 }
+    }).setOrigin(0.5).setDepth(303);
+
+    // Multiplayer state
+    this.roles = { guesser: null, hinter: null };
+    this.isHost = false;
+    this.currentRoom = null;
+
+    // Button style
+    const btnY = 300;
+    const btnSpacing = 70;
+    const btnStyle = {
         fontSize: '28px',
         color: '#fff',
-        backgroundColor: '#5271ff',
-        padding: { left: 24, right: 24, top: 12, bottom: 12 },
-        borderRadius: 8
-    }).setOrigin(0.5).setDepth(335).setInteractive({ useHandCursor: true });
-
-    // Guesser Button
-    const guesserBtn = this.add.text(512 + 100, 370, 'Guesser', {
-        fontSize: '28px',
-        color: '#fff',
-        backgroundColor: '#ee442b',
-        padding: { left: 24, right: 24, top: 12, bottom: 12 },
-        borderRadius: 8
-    }).setOrigin(0.5).setDepth(335).setInteractive({ useHandCursor: true });
-
-    // Close button
-    const closeBtn = this.add.text(
-        512 + 500 / 2 - 24,
-        320 - 250 / 2 + 24,
-        '✕',
-        {
-            fontSize: '32px',
-            color: '#888',
-            fontStyle: 'bold',
-            backgroundColor: '#fff',
-            padding: { left: 8, right: 8, top: 2, bottom: 2 },
-            borderRadius: 16,
-            align: 'center'
-        }
-    ).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
-
-    // Cleanup helper
-    const closePopup = () => {
-        this.popupContainer.destroy();
-        popupBox.destroy();
-        popupText.destroy();
-        hinterBtn.destroy();
-        guesserBtn.destroy();
-        closeBtn.destroy();
-        this.popupContainer = null;
+        backgroundColor: '#fa821a',
+        padding: { left: 32, right: 32, top: 12, bottom: 12 },
+        borderRadius: 12
     };
 
-    closeBtn.on('pointerdown', closePopup);
+    // Option buttons
+    const createRoomBtn = this.add.text(512, btnY, "Create Room", btnStyle)
+        .setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
+    const joinRoomBtn = this.add.text(512, btnY + btnSpacing, "Join Room", btnStyle)
+        .setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
+    const simpleGameBtn = this.add.text(512, btnY + btnSpacing * 2, "Start Simple Game", btnStyle)
+        .setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
 
-    hinterBtn.on('pointerdown', () => {
-        closePopup();
-        // Go to game page as Hinter (pass role if needed)
-        this.scene.start('Game'/*, { hinter : currentUser._id }*/);
+    // Role selection UI (hidden by default)
+    let roleMsg, guesserBtn, hinterBtn, startBtn;
+
+    function showRoleSelection() {
+        if (!roleMsg) {
+            roleMsg = this.add.text(512, btnY + btnSpacing * 3 + 20, "Choose your role:", {
+                fontSize: '24px',
+                color: '#fa821a',
+                align: 'center'
+            }).setOrigin(0.5).setDepth(304);
+
+            guesserBtn = this.add.text(512 - 90, btnY + btnSpacing * 4, "Guesser", btnStyle)
+                .setOrigin(0.5).setDepth(305).setInteractive({ useHandCursor: true });
+            hinterBtn = this.add.text(512 + 90, btnY + btnSpacing * 4, "Hinter", btnStyle)
+                .setOrigin(0.5).setDepth(305).setInteractive({ useHandCursor: true });
+
+            guesserBtn.on('pointerdown', () => {
+                this.roles.guesser = "You"; // or actual user ID/name
+                infoMsg.setText("You are the guesser.");
+                socket.emit('setRole', 'guesser');
+                updateStartBtn();
+            });
+            hinterBtn.on('pointerdown', () => {
+                this.roles.hinter = "You";
+                infoMsg.setText("You are the hinter.");
+                socket.emit('setRole', 'hinter');
+                updateStartBtn();
+            });
+
+            startBtn = this.add.text(512, btnY + btnSpacing * 5 + 10, "Start Game", {
+                fontSize: '28px',
+                color: '#fff',
+                backgroundColor: '#2ecc40',
+                padding: { left: 32, right: 32, top: 12, bottom: 12 },
+                borderRadius: 12
+            }).setOrigin(0.5).setDepth(306).setInteractive({ useHandCursor: true }).setAlpha(0.5);
+            startBtn.disableInteractive();
+
+            startBtn.on('pointerdown', () => {
+                if (this.roles.guesser && this.roles.hinter && this.isHost) {
+                    socket.emit('start-game', { roomCode: this.currentRoom });
+                } else {
+                    infoMsg.setText("Both roles must be filled and only host can start.");
+                }
+            });
+        } else {
+            roleMsg.setVisible(true);
+            guesserBtn.setVisible(true);
+            hinterBtn.setVisible(true);
+            startBtn.setVisible(true);
+        }
+        updateStartBtn();
+    }
+
+    function hideRoleSelection() {
+        if (roleMsg) {
+            roleMsg.setVisible(false);
+            guesserBtn.setVisible(false);
+            hinterBtn.setVisible(false);
+            startBtn.setVisible(false);
+        }
+    }
+
+    function updateStartBtn() {
+        console.log("Updating startBtn:", {
+      guesser: this.roles.guesser,
+      hinter: this.roles.hinter,
+      isHost: this.isHost
+    });
+    if (this.roles.guesser && this.roles.hinter && this.isHost) {
+        startBtn.setAlpha(1);
+        startBtn.setInteractive({ useHandCursor: true });
+    } else {
+        startBtn.setAlpha(0.5);
+        startBtn.disableInteractive();
+    }
+    }
+
+    // Bind functions to this
+    showRoleSelection = showRoleSelection.bind(this);
+    hideRoleSelection = hideRoleSelection.bind(this);
+    updateStartBtn = updateStartBtn.bind(this);
+
+    // Button logic
+    createRoomBtn.on('pointerdown', () => {
+        this.isHost = true;
+        const roomCode = generateRoomCode();
+        this.currentRoom = roomCode; // <-- Make sure this is set!
+        socket.emit('createRoom', roomCode);
+        infoMsg.setText(`Room created: ${roomCode}. You are the host.`);
+        showRoleSelection();
     });
 
-    guesserBtn.on('pointerdown', () => {
-        closePopup();
-        // Go to game page as Guesser (pass role if needed)
-        this.scene.start('Game'  /*,{guesser : currentUser._id}*/ );
+    joinRoomBtn.on('pointerdown', () => {
+        this.isHost = false;
+        const roomCode = window.prompt("Enter room code to join:");
+        if (!roomCode) return;
+        this.currentRoom = roomCode; // <-- Make sure this is set!
+        socket.emit('joinRoom', roomCode);
+        infoMsg.setText("Joined room " + roomCode + ". You are not the host.");
+        showRoleSelection();
+    });
+
+    simpleGameBtn.on('pointerdown', () => {
+        infoMsg.setText("Simple game started! (Demo only)");
+        hideRoleSelection();
+        this.scene.start('Game');
+    });
+
+    // Listen for game start from server
+    socket.on('game-started', () => {
+        this.scene.start('Game');
+    });
+
+    // (Optional) Listen for player join/role updates
+    socket.on('playerJoined', (playerId) => {
+        console.log(`${playerId} joined the room`);
+    });
+    socket.on('roleUpdated', ({ playerId, role, name }) => {
+        // Example: assign by role string
+        if (role === 'guesser') this.roles.guesser = name || playerId;
+        if (role === 'hinter') this.roles.hinter = name || playerId;
+        updateStartBtn();
+    });
+
+    // Close button
+    const closeBtn = this.add.text(512 + 600 / 2 - 24, 360 - 420 / 2 + 24, '✕', {
+        fontSize: '32px',
+        color: '#888',
+        fontStyle: 'bold',
+        backgroundColor: '#fff',
+        padding: { left: 8, right: 8, top: 2, bottom: 2 },
+        borderRadius: 16,
+        align: 'center'
+    }).setOrigin(0.5).setDepth(310).setInteractive({ useHandCursor: true });
+
+    closeBtn.on('pointerdown', () => {
+        this.popupContainer.destroy();
+        popupBox.destroy();
+        title.destroy();
+        createRoomBtn.destroy();
+        joinRoomBtn.destroy();
+        simpleGameBtn.destroy();
+        infoMsg.destroy();
+        closeBtn.destroy();
+        if (roleMsg) roleMsg.destroy();
+        if (guesserBtn) guesserBtn.destroy();
+        if (hinterBtn) hinterBtn.destroy();
+        if (startBtn) startBtn.destroy();
+        this.popupContainer = null;
     });
 });
-
         // Back arrow button (slightly lower)
         const arrow = this.add.text(60, 90, '<', {
             fontSize: '48px',
@@ -272,80 +405,72 @@ gameModeBtn.on('pointerdown', () => {
             const popupDepth = 201;
 
             let slideImage = this.add.image(512, 370, slides[current])
-            .setDisplaySize(850, 550)
-            .setDepth(popupDepth);
+    .setDisplaySize(850, 550)
+    .setDepth(popupDepth);
 
-            // Previous button
-            const prevBtn = this.add.text(192, 680, 'Previous', {
-            fontSize: '28px',
-            color: '#fff',
-            padding: { left: 20, right: 20, top: 10, bottom: 10 }
-            }).setOrigin(0.5).setDepth(popupDepth + 1).setInteractive({ useHandCursor: true });
+            // Prev button
+            const prevBtn = this.add.text(512 - 400, 370, '<', {
+                fontSize: '64px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { left: 16, right: 16, top: 8, bottom: 8 },
+                borderRadius: 32
+            }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
 
             // Next button
-            const nextBtn = this.add.text(832, 680, 'Next', {
-            fontSize: '28px',
-            color: '#fff',
-            padding: { left: 20, right: 20, top: 10, bottom: 10 }
-            }).setOrigin(0.5).setDepth(popupDepth + 1).setInteractive({ useHandCursor: true });
+            const nextBtn = this.add.text(512 + 400, 370, '>', {
+                fontSize: '64px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { left: 16, right: 16, top: 8, bottom: 8 },
+                borderRadius: 32
+            }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
 
-            // Close popup helper
-            const closePopup = () => {
-            this.popupContainer.destroy();
-            popupBox.destroy();
-            slideImage.destroy();
-            prevBtn.destroy();
-            nextBtn.destroy();
-            this.popupContainer = null;
+            // Slide change logic
+            const updateSlide = (index) => {
+                slideImage.setTexture(slides[index]);
             };
 
-            function updateSlide() {
-            slideImage.setTexture(slides[current]);
-            prevBtn.setAlpha(current === 0 ? 0.5 : 1);
-            prevBtn.disableInteractive();
-            nextBtn.setAlpha(current === slides.length - 1 ? 0.5 : 1);
-            nextBtn.disableInteractive();
-            if (current > 0) prevBtn.setInteractive({ useHandCursor: true });
-            if (current < slides.length - 1) nextBtn.setInteractive({ useHandCursor: true });
-            }
-
             prevBtn.on('pointerdown', () => {
-            if (current > 0) {
-                current--;
-                updateSlide();
-            }
+                current = (current > 0) ? current - 1 : slides.length - 1;
+                updateSlide(current);
             });
+
             nextBtn.on('pointerdown', () => {
-            if (current < slides.length - 1) {
-                current++;
-                updateSlide();
-            } else if (current === slides.length - 1) {
-                // Close on last page next click
-                closePopup();
-            }
+                current = (current < slides.length - 1) ? current + 1 : 0;
+                updateSlide(current);
             });
 
-            updateSlide();
+            // Close button
+            const closeBtn = this.add.text(
+                512 + 500 / 2 - 24,
+                320 - 250 / 2 + 24,
+                '✕',
+                {
+                    fontSize: '32px',
+                    color: '#888',
+                    fontStyle: 'bold',
+                    backgroundColor: '#fff',
+                    padding: { left: 8, right: 8, top: 2, bottom: 2 },
+                    borderRadius: 16,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
 
-            // Close when clicking overlay (but not popup box)
-            this.popupContainer.on('pointerdown', (pointer) => {
-            // Only close if click is outside popupBox
-            const bounds = popupBox.getBounds();
-            if (
-                pointer.x < bounds.left ||
-                pointer.x > bounds.right ||
-                pointer.y < bounds.top ||
-                pointer.y > bounds.bottom
-            ) {
-                closePopup();
-            }
+            closeBtn.on('pointerdown', () => {
+                this.popupContainer.destroy();
+                popupBox.destroy();
+                slideImage.destroy();
+                prevBtn.destroy();
+                nextBtn.destroy();
+                closeBtn.destroy();
+                this.popupContainer = null;
             });
         });
-
     }
+}
 
-    changeScene ()
-    {
-        this.scene.start('MainMenu');
-    }
+const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
+if (user && user.name) {
+    socket.emit('registerUser', user.name);
 }

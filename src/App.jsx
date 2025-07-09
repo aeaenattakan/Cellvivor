@@ -1,147 +1,68 @@
-import React, { useRef, useState, useEffect} from 'react';
+// ===== App.jsx =====
+import React, { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
 import Phaser from 'phaser';
 import { PhaserGame } from './PhaserGame';
 import { EventBus } from './game/EventBus';
 import Login from './Login';
 import Signin from './Signin';
+import { io } from 'socket.io-client';
 
-function App ()
-{
-    // The sprite can only be moved in the MainMenu Scene
-    const [canMoveSprite, setCanMoveSprite] = useState(true);
-    
-    //  References to the PhaserGame component (game and scene are exposed)
-    const phaserRef = useRef();
-    const [spritePosition, setSpritePosition] = useState({ x: 0, y: 0 });
+function App() {
+  const [canMoveSprite, setCanMoveSprite] = useState(true);
+  const [spritePosition, setSpritePosition] = useState({ x: 0, y: 0 });
+  const phaserRef = useRef();
 
-    const changeScene = () => {
+  const [users, setUsers] = useState([]);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignin, setShowSignin] = useState(false);
 
-        const scene = phaserRef.current.scene;
+  const user = JSON.parse(localStorage.getItem('currentUser'));
 
-        if (scene)
-        {
-            scene.changeScene();
-        }
+  const socket = useRef(null);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/users')
+      .then((res) => setUsers(res.data))
+      .catch((err) => console.error('Failed to load users:', err));
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      socket.current = io('http://localhost:5000');
+
+      socket.current.emit('registerUser', user.name);
+
+      // const role = prompt("Choose your role: guesser or hinter");
+      // socket.current.emit('setRole', role === 'hinter' ? 'hinter' : 'guesser');
     }
+  }, [user]);
 
-    const moveSprite = () => {
-
-        const scene = phaserRef.current.scene;
-
-        if (scene && scene.scene.key === 'MainMenu')
-        {
-            // Get the update logo position
-            scene.moveLogo(({ x, y }) => {
-
-                setSpritePosition({ x, y });
-
-            });
-        }
-    }
-
-    const addSprite = () => {
-
-        const scene = phaserRef.current.scene;
-
-        if (scene)
-        {
-            // Add more stars
-            const x = Phaser.Math.Between(64, scene.scale.width - 64);
-            const y = Phaser.Math.Between(64, scene.scale.height - 64);
-
-            //  `add.sprite` is a Phaser GameObjectFactory method and it returns a Sprite Game Object instance
-            const star = scene.add.sprite(x, y, 'star');
-
-            //  ... which you can then act upon. Here we create a Phaser Tween to fade the star sprite in and out.
-            //  You could, of course, do this from within the Phaser Scene code, but this is just an example
-            //  showing that Phaser objects and systems can be acted upon from outside of Phaser itself.
-            scene.add.tween({
-                targets: star,
-                duration: 500 + Math.random() * 1000,
-                alpha: 0,
-                yoyo: true,
-                repeat: -1
-            });
-        }
-    }
-
-    // Event emitted from the PhaserGame component
-    const currentScene = (scene) => {
-
-        setCanMoveSprite(scene.scene.key !== 'MainMenu');
-        
-    }
-
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        axios.get('http://localhost:5000/users')
-            .then((response) => {
-                setUsers(response.data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                console.error('There was an error fetching the items!', error);
-            });
-    }, []);
-
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-
-    const [showLogin, setShowLogin] = useState(false);
-    const [showSignin, setShowSignin] = useState(false);
-
-    useEffect(() => {
-        const loginHandler = () => setShowLogin(true);
-        const signinHandler = () => setShowSignin(true);
-        EventBus.on('show-login', loginHandler);
-        EventBus.on('show-signin', signinHandler);
-        return () => {
-            EventBus.off('show-login', loginHandler);
-            EventBus.off('show-signin', signinHandler);
-        };
-    }, []);
-
-    const handleLogin = (user) => {
-        setShowLogin(false);
-        // 
+  useEffect(() => {
+    const loginHandler = () => setShowLogin(true);
+    const signinHandler = () => setShowSignin(true);
+    EventBus.on('show-login', loginHandler);
+    EventBus.on('show-signin', signinHandler);
+    return () => {
+      EventBus.off('show-login', loginHandler);
+      EventBus.off('show-signin', signinHandler);
     };
+  }, []);
 
-    const handleSignin = (user) => {
-        setShowSignin(false);
-        // 
-    };
+  const handleLogin = () => setShowLogin(false);
+  const handleSignin = () => setShowSignin(false);
 
-    return (
-        <div id="app">
-            <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
-            <div>
-                {/* <div>
-                    <button className="button" onClick={changeScene}>Change Scene</button>
-                </div> */}
-                {/* <div>
-                    <button disabled={canMoveSprite} className="button" onClick={moveSprite}>Toggle Movement</button>
-                </div>
-                <div className="spritePosition">Sprite Position:
-                    <pre>{`{\n  x: ${spritePosition.x}\n  y: ${spritePosition.y}\n}`}</pre>
-                </div>
-                <div>
-                    <button className="button" onClick={addSprite}>Add New Sprite</button>
-                </div>
-                <div className="data">
-                    <ul>
-                        {users.map((item) => (
-                            <li key={item._id}>{item.name}</li>
-                        ))}
-                    </ul> */}
-                {/* </div> */}
-                
-            </div>
-            {showLogin && <Login onLogin={handleLogin} />}
-            {showSignin && <Signin onSignin={handleSignin} />}
-        </div>
-    )
+  const currentScene = (scene) => {
+    setCanMoveSprite(scene.scene.key !== 'MainMenu');
+  };
+
+  return (
+    <div id="app">
+      <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
+      {showLogin && <Login onLogin={handleLogin} />}
+      {showSignin && <Signin onSignin={handleSignin} />}
+    </div>
+  );
 }
 
 export default App;
