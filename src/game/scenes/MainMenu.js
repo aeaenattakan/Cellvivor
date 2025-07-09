@@ -200,7 +200,7 @@ export class MainMenu extends Scene
         });
 
         EventBus.emit('current-scene-ready', this);
-        const chapter2Btn = this.add.text(this.cameras.main.centerX, 700, 'Chapter 1', {
+        const chapter2Btn = this.add.text(this.cameras.main.centerX, 700, 'Chapter 2', {
             fontSize: '28px',
             color: '#FFFFFF',
             padding: { left: 32, right: 32, top: 12, bottom: 12 },
@@ -213,7 +213,7 @@ export class MainMenu extends Scene
         chapter2Btn.on('pointerover', () => chapter2Btn.setStyle({ backgroundColor: '#4BC6F0' }));
         chapter2Btn.on('pointerout', () => chapter2Btn.setStyle({ backgroundColor: '#6067FE' }));
         chapter2Btn.on('pointerdown', () => {
-            this.scene.start('Chapter1');
+            this.scene.start('Chapter2');
         });
     }
 
