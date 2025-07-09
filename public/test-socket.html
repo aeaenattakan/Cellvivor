@@ -1,0 +1,46 @@
+<!-- public/test-socket.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Test</title>
+</head>
+<body>
+  <h1>Socket.IO Test Client</h1>
+  <p id="status">Connecting...</p>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://localhost:5000'); // match your backend port
+
+    socket.on('connect', () => {
+      document.getElementById('status').innerText = 'Connected: ' + socket.id;
+      console.log('Connected:', socket.id);
+    });
+
+    socket.on('currentPlayers', (players) => {
+      console.log('Current players:', players);
+    });
+
+    socket.on('newPlayer', (player) => {
+      console.log('New player joined:', player);
+    });
+
+    socket.on('playerMoved', (player) => {
+      console.log('Player moved:', player);
+    });
+
+    socket.on('playerDisconnected', (playerId) => {
+      console.log('Player disconnected:', playerId);
+    });
+
+    // Simulate player movement after 2 seconds
+    setTimeout(() => {
+      socket.emit('playerMovement', {
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        rotation: Math.random() * 360
+      });
+    }, 2000);
+  </script>
+</body>
+</html>

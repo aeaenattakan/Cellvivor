@@ -4,16 +4,12 @@ import mongoose from "mongoose";
 import bodyParser from "body-parser";
 import model from "./src/model/model.js"
 import http from 'http';
-import * as io from 'socket.io';
-var app = express();
-var server = http.Server(app);
-const socketio = new io.Server(server);
-const { urlencoded, json } = bodyParser;
-// var io = socketio(server, {
-//   pingTimeout: 60000,
-// })
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-//io.on('connection', function (socket) {}
+
+var app = express();
+const { urlencoded, json } = bodyParser;
 
 var mongo_uri = "mongodb+srv://bammynithirathaya:cellvivor@cluster0.ovn4dde.mongodb.net/guessitdb?retryWrites=true&w=majority&appName=Cluster0";
 
@@ -67,10 +63,42 @@ app.use(cors());
 app.use(urlencoded({ extended: true }));
 app.use(json());
 
-var port = process.env.PORT || 5000;
+import { Server as SocketIO } from 'socket.io';
 
-app.listen(port, () => {
-  console.log("[success] task 1 : listening on port " + port);
+const server = http.createServer(app); // create http server from express app
+const io = new SocketIO(server, {
+  cors: {
+    origin: '*',
+  },
+  pingTimeout: 60000,
+});
+
+const players = {}; // store all connected players
+
+io.on('connection', (socket) => {
+  console.log(`Player connected: ${socket.id}`);
+
+  // Only track connection/disconnection, no player data or movement
+  io.emit('newPlayer', socket.id);
+
+  // handle disconnect
+  socket.on('disconnect', () => {
+    console.log(`Player disconnected: ${socket.id}`);
+    io.emit('playerDisconnected', socket.id);
+  });
+});
+
+function getRandomColor() {
+  return '0x' + Math.floor(Math.random() * 16777215).toString(16);
+}
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// start the server with HTTP and WebSocket support
+const port = process.env.PORT || 5000;
+server.listen(port, () => {
+  console.log(`[success] task 1 : HTTP & Socket.IO server listening on port ${port}`);
 });
 
 app.get('/test/:id', (req, res) => {
