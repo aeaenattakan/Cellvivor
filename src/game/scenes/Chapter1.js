@@ -58,8 +58,6 @@ export class Chapter1 extends Scene {
 
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
-    // this.load.image('skipafter', 'assets/skipafter.png');
-    // this.load.image('skipbefore', 'assets/skipbefore.png');
     this.load.image('book', 'assets/book.png');
     this.load.image('5.png', 'assets/5.png');
     this.load.image('6.png', 'assets/6.png');
@@ -101,25 +99,25 @@ export class Chapter1 extends Scene {
     });
     // Prepare dialogue script with sceneStep for background changes
     this.script = [
-      { speaker: "Narrator", text: 'Welcome to your journey inside the body, This is "CELLVIVOR".' }, //once upon a time
+      { speaker: "Narrator:", text: 'Welcome to your journey inside the body, This is "CELLVIVOR".' }, //once upon a time
     // bone
-    { speaker: "Narrator", text: " a vast network of cells works relentlessly to keep us alive.", sceneStep: 2 },
+    { speaker: "Narrator:", text: " a vast network of cells works relentlessly to keep us alive.", sceneStep: 2 },
     { speaker: "Narrator", text: "And here, deep inside, is the marrow.", sceneStep: 3 },
-    { speaker: "Narrator", text: "The marrow is bustling with activity.", sceneStep: 4 }, // stays on same scene for 2nd click
-    {speaker: "Noobyzom", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
-    { speaker: "Narrator", text: "You are Noobyzom", sceneStep: 6 }, // noobywake
-    { speaker: "Narrator", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
-    { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero", sceneStep: 8 },
-    { speaker: "Narrator", text: "  perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
+    { speaker: "Narrator:", text: "The marrow is bustling with activity.", sceneStep: 4 }, // stays on same scene for 2nd click
+    {speaker: "Noobyzom:", text: "☆*: .｡. o(≧▽≦)o .｡.:*☆", sceneStep: 5 }, // noobysleep
+    { speaker: "Narrator:", text: "You are Noobyzom", sceneStep: 6 }, // noobywake
+    { speaker: "Narrator:", text: "A newborn red blood cell, just created in the bone marrow, the body’s blood cell factory.", sceneStep: 7 }, // CellBorn
+    { speaker: "Narrator:", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero", sceneStep: 8 },
+    { speaker: "Narrator:", text: "  perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
    // { speaker: "Narrator", text: " Born from hematopoietic stem cells, you have developed into a biconcave, flexible, nucleus-free hero — perfectly designed to carry one of life’s most precious elements: oxygen.", sceneStep: 8 },
-    { speaker: "Narrator", text: "Your journey starts here. From the bone marrow, \nyou will enter the bloodstream through the vessels.", sceneStep: 10 },//bloodvess 
-    { speaker: "Narrator", text: "Your mission: Deliver oxygen to every cell in the body and maintain life.", sceneStep: 9 },
-    { speaker: "Narrator", text: "This is not just a task — it's the purpose of your existence.", sceneStep: 11 },
+    { speaker: "Narrator:", text: "Your journey starts here. From the bone marrow, \nyou will enter the bloodstream through the vessels.", sceneStep: 10 },//bloodvess 
+    { speaker: "Narrator:", text: "Your mission: Deliver oxygen to every cell in the body and maintain life.", sceneStep: 9 },
+    { speaker: "Narrator:", text: "This is not just a task — it's the purpose of your existence.", sceneStep: 11 },
     { speaker: "Senior Red Blood Cell:", text: " Ah, fresh from the marrow, huh? I’m your senior — a well-traveled, oxygen-delivering expert.", sceneStep:  12},
-    { speaker: "Senior Red Blood Cell", text: " And lucky you — I’ve got a heart map just for you.", sceneStep:  12},
-    { speaker: "Noobyzom", text: "“A map? Wait… where exactly is the heart?", sceneStep:  11},
-    { speaker: "Senior Red Blood Cell", text: "Haha, rookie move! Don't worry, you’ll learn quickly.\nThe heart is our command center — the engine that pumps us through the body.", sceneStep:  13},
-    { speaker: "Senior Red Blood Cell", text: " Now listen up, I’ll walk you through the main routes: \nthe atria, ventricles, arteries, veins… It’s like a highway system in here!", sceneStep:  14},
+    { speaker: "Senior Red Blood Cell:", text: " And lucky you — I’ve got a heart map just for you.", sceneStep:  12},
+    { speaker: "Noobyzom:", text: "“A map? Wait… where exactly is the heart?", sceneStep:  11},
+    { speaker: "Senior Red Blood Cell:", text: "Haha, rookie move! Don't worry, you’ll learn quickly.\nThe heart is our command center — the engine that pumps us through the body.", sceneStep:  13},
+    { speaker: "Senior Red Blood Cell:", text: " Now listen up, I’ll walk you through the main routes: \nthe atria, ventricles, arteries, veins… It’s like a highway system in here!", sceneStep:  14},
     { speaker: "☆Arteries☆", text: "Arteries have thick, elastic walls that allow them to handle the high pressure of blood being pumped directly from the heart. They do not contain valves, and blood pulses strongly through them with each heartbeat. ", sceneStep:  15},
     { speaker: "☆Veins☆", text: "Veins have thinner walls than arteries and carry blood under lower pressure. They contain valves to prevent the backward flow of blood, and blood movement is aided by surrounding muscles and these valves. ", sceneStep:  16},
     { speaker: "☆Capillaries☆", text: "Capillaries are the smallest blood vessels, with walls only one cell thick. They are the sites where the exchange of gases, nutrients, and waste occurs between the blood and body cells. ", sceneStep:  14},
@@ -204,19 +202,6 @@ export class Chapter1 extends Scene {
     });
 
     this.currentLine = 0;
-    this.bgStepIndex = 0;
-
-    // Register input listeners for advancing dialogue
-    this.input.on('pointerdown', () => this.dialogueUI.advance && this.dialogueUI.advance());
-    this.input.keyboard.on('keydown', (event) => {
-      if (
-        event.code === 'Space' ||
-        event.code === 'Enter' ||
-        event.code === 'Tab'
-      ) {
-        if (this.dialogueUI.advance) this.dialogueUI.advance();
-      }
-    });
 
     // Start the first line
     this.showCurrentLine();

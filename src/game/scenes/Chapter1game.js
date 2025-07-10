@@ -1,254 +1,185 @@
 import Phaser from 'phaser';
-import addStoryModeUI from './UIscene'; // Adjust the path if needed
+import { addStoryModeUI } from './UIscene';
 
-export default class Chapter1game extends Phaser.Scene {
+export class Chapter1game extends Phaser.Scene {
     constructor() {
         super('Chapter1game');
         this.dropZones = {};
-        this.draggables = [];
-        this.matches = {};
-        this.correctMap = {};
-        this.placedCount = 0;
-        this.resultTexts = [];
+        this.properties = [];
+        this.currentIndex = 0;
     }
 
     preload() {
-        // Preload vessel images if not already loaded in main preload
-        this.load.image('BloodVesselA', 'assets/BloodVesselA.png');
-        this.load.image('BloodVesselB', 'assets/BloodVesselB.png');
-        this.load.image('BloodVessel', 'assets/BloodVessel.png');
+        this.load.image('BloodVessel', 'assets/BloodVessel_Capi.png');
+        this.load.image('Vein', 'assets/Vein.png');
+        this.load.image('Artery', 'assets/Artery.png');
+        this.load.image('setting', 'assets/setting.png');
+        this.load.image('book', 'assets/book.png');
     }
 
     create() {
-        // --- Call UI Scene/Overlay ---
         addStoryModeUI(this, {
             onSettings: (scene, box) => scene.add.text(box.x, box.y, 'Custom Settings', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
             onBook: (scene, box) => scene.add.text(box.x, box.y, 'Custom Book', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
         });
 
-        // --- Drop Zone Setup ---
         const zoneData = [
-            {
-                key: 'BloodVesselA',
-                label: '🟥 Arteries',
-                x: 250,
-                y: 250,
-                type: 'arteries'
-            },
-            {
-                key: 'BloodVesselB',
-                label: '🔵 Veins',
-                x: 550,
-                y: 250,
-                type: 'veins'
-            },
-            {
-                key: 'BloodVessel',
-                label: '🟠 Capillaries',
-                x: 850,
-                y: 250,
-                type: 'capillaries'
-            }
+            { key: 'Artery', label: 'Arteries', type: 'arteries' },
+            { key: 'Vein', label: 'Veins', type: 'veins' },
+            { key: 'BloodVessel', label: 'Capillaries', type: 'capillaries' }
         ];
 
-        this.dropZones = {};
-        zoneData.forEach((zone, i) => {
-            // Vessel image
-            this.add.image(zone.x, zone.y, zone.key).setDisplaySize(120, 120).setDepth(1);
-            // Label
-            this.add.text(zone.x, zone.y + 80, zone.label, {
-                fontSize: '22px',
-                color: '#222',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
+        const screenWidth = this.sys.game.config.width;
+        const spacing = screenWidth / (zoneData.length + 1);
 
-            // Drop zone rectangle (invisible, but for feedback)
-            const rect = this.add.rectangle(zone.x, zone.y, 160, 160, 0x000000, 0.08)
-                .setStrokeStyle(3, 0x888888)
-                .setDepth(2)
-                .setInteractive({ dropZone: true });
-            rect.zoneType = zone.type;
-            this.dropZones[zone.type] = rect;
+        // Make drop zones bigger (fit image size)
+        zoneData.forEach((data, i) => {
+            const x = spacing * (i + 1);
+            const y = 380;
+            const img = this.add.image(x, y, data.key).setScale(0.15).setOrigin(0.5);
+            // Use image size for drop zone
+            const zone = this.add.zone(x, y, img.displayWidth, img.displayHeight).setRectangleDropZone(img.displayWidth, img.displayHeight);
+            this.add.text(x, y + img.displayHeight / 2 + 30, data.label, { fontSize: '22px', color: '#000' }).setOrigin(0.5);
+            zone.zoneType = data.type;
+            this.dropZones[data.type] = zone;
         });
 
-        // --- Draggable Properties ---
-        const properties = [
-            // Arteries
+        this.properties = Phaser.Utils.Array.Shuffle([
             { text: 'Thick, elastic walls', type: 'arteries' },
-            { text: 'Can handle high pressure from the heart', type: 'arteries' },
-            { text: 'No valves', type: 'arteries' },
             { text: 'Blood pulses strongly with each heartbeat', type: 'arteries' },
-            // Veins
-            { text: 'Thinner walls than arteries', type: 'veins' },
             { text: 'Have valves to prevent blood from flowing backward', type: 'veins' },
             { text: 'Lower pressure', type: 'veins' },
-            { text: 'Blood moves with help from muscles and valves', type: 'veins' },
-            // Capillaries
             { text: 'The smallest vessels', type: 'capillaries' },
-            { text: 'Walls only one cell thick', type: 'capillaries' },
             { text: 'Sites of exchange between blood and body cell', type: 'capillaries' }
-        ];
+        ]);
 
-        Phaser.Utils.Array.Shuffle(properties); // Randomize order
+        this.showNextProperty();
 
-        this.draggables = {};
-        this.matches = {};
-        this.correctMap = {};
-        this.placedCount = 0;
-
-        // Place draggable property boxes
-        properties.forEach((prop, i) => {
-            const box = this.add.rectangle(200 + (i % 2) * 400, 450 + Math.floor(i / 2) * 60, 350, 48, 0xffffff, 1)
-                .setStrokeStyle(2, 0x888888)
-                .setDepth(3)
-                .setInteractive({ draggable: true });
-            const txt = this.add.text(box.x, box.y, prop.text, {
-                fontSize: '18px',
-                color: '#222',
-                wordWrap: { width: 330 }
-            }).setOrigin(0.5).setDepth(4);
-
-            box.propType = prop.type;
-            box.textObj = txt;
-            box.originalX = box.x;
-            box.originalY = box.y;
-            box.isPlaced = false;
-            this.draggables.push(box);
-            this.correctMap[box] = prop.type;
-
-            // Drag events
-            box.on('drag', (pointer, dragX, dragY) => {
-                box.x = dragX;
-                box.y = dragY;
-                txt.x = dragX;
-                txt.y = dragY;
+        // Popup UI helpers
+        let popupContainer = null, popupBox = null, popupText = null, closeBtn = null;
+        const showPopup = (msg, color = '#222', onClose = null) => {
+            if (popupContainer) return;
+            popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+                .setOrigin(0.5).setDepth(299);
+            popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
+                .setOrigin(0.5).setDepth(300);
+            popupText = this.add.text(512, 320, msg, {
+                fontSize: '28px',
+                color: color,
+                wordWrap: { width: 440 },
+                align: 'center'
+            }).setOrigin(0.5).setDepth(301);
+            closeBtn = this.add.text(512, 410, 'Close', {
+                fontSize: '24px',
+                color: '#FFD700',
+                backgroundColor: '#333',
+                padding: { left: 16, right: 16, top: 8, bottom: 8 },
+                borderRadius: 8
+            }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
+            closeBtn.on('pointerdown', () => {
+                popupContainer.destroy();
+                popupBox.destroy();
+                popupText.destroy();
+                closeBtn.destroy();
+                popupContainer = popupBox = popupText = closeBtn = null;
+                if (typeof onClose === 'function') onClose();
             });
+        };
 
-            box.on('dragend', (pointer, dragX, dragY, dropped) => {
-                if (!dropped) {
-                    // Snap back if not dropped on a zone
+        this.input.on('drop', (pointer, box, dropZone) => {
+            if (!dropZone || !box) return;
+
+            if (dropZone.zoneType === box.propType) {
+                showPopup('Correct!\n(≧∇≦)ﾉ', '#00aa00', () => {
+                    box.textObj.destroy();
+                    box.destroy();
+                    this.showNextProperty();
+                });
+            } else {
+                showPopup('Try Again!\nヽ(*。>Д<)o゜', '#ff0000', () => {
                     this.tweens.add({
-                        targets: [box, txt],
+                        targets: [box, box.textObj],
                         x: box.originalX,
                         y: box.originalY,
-                        duration: 200,
+                        duration: 300,
                         ease: 'Sine.easeInOut'
                     });
-                }
-            });
-        });
-
-        // Enable drag for all boxes
-        this.input.setDraggable(this.draggables);
-
-        // Drop event
-        this.input.on('drop', (pointer, gameObject, dropZone) => {
-            if (!dropZone || !gameObject) return;
-            // Snap to drop zone center
-            gameObject.x = dropZone.x;
-            gameObject.y = dropZone.y + Phaser.Math.Between(-40, 40); // slight random offset for stacking
-            gameObject.textObj.x = gameObject.x;
-            gameObject.textObj.y = gameObject.y;
-            gameObject.isPlaced = true;
-            this.matches[gameObject] = dropZone.zoneType;
-            this.placedCount = Object.keys(this.matches).length;
-
-            // Visual feedback
-            dropZone.setStrokeStyle(4, 0x44ff44);
-
-            // If all placed, validate
-            if (this.placedCount === this.draggables.length) {
-                this.validateMatches();
+                });
             }
         });
 
-        // Remove highlight on dragleave
-        Object.values(this.dropZones).forEach(zone => {
-            zone.on('pointerout', () => {
-                zone.setStrokeStyle(3, 0x888888);
-            });
-        });
-
-        // Instructions
-        this.add.text(512, 80, 'Match each property to the correct blood vessel type!', {
-            fontSize: '28px',
-            color: '#222',
-            fontStyle: 'bold'
+        this.add.text(screenWidth / 2, 170, 'Match the property to the\ncorrect blood vessel type!', {
+            fontSize: '30px', color: '#222', fontStyle: 'bold'
         }).setOrigin(0.5);
-
-        // Reset/Next buttons (hidden until needed)
-        this.tryAgainBtn = this.add.text(512, 670, 'Try Again', {
-            fontSize: '24px',
-            color: '#fff',
-            backgroundColor: '#c00',
-            padding: { left: 24, right: 24, top: 10, bottom: 10 },
-            borderRadius: 8
-        }).setOrigin(0.5).setDepth(10).setInteractive().setVisible(false);
-
-        this.nextBtn = this.add.text(900, 670, 'Next', {
-            fontSize: '24px',
-            color: '#fff',
-            backgroundColor: '#0c0',
-            padding: { left: 24, right: 24, top: 10, bottom: 10 },
-            borderRadius: 8
-        }).setOrigin(0.5).setDepth(10).setInteractive().setVisible(false);
-
-        this.tryAgainBtn.on('pointerdown', () => this.resetGame());
-        // this.nextBtn.on('pointerdown', () => this.scene.start('NextSceneName'));
     }
 
-    validateMatches() {
-        // Remove previous result texts
-        this.resultTexts.forEach(t => t.destroy());
-        this.resultTexts = [];
+    showNextProperty() {
+        if (this.currentIndex >= this.properties.length) {
+            // Show popup with "Continue to Chapter 2" button (styled like hint popup)
+            let popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
+                .setOrigin(0.5).setDepth(299);
+            let popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
+                .setOrigin(0.5).setDepth(300);
+            let popupText = this.add.text(512, 300, 'All done!\nContinue to Chapter 2?', {
+                fontSize: '26px', color: '#222', align: 'center'
+            }).setOrigin(0.5).setDepth(301);
 
-        let allCorrect = true;
-        this.draggables.forEach(box => {
-            const placedType = this.matches[box];
-            const correctType = box.propType;
-            if (placedType === correctType) {
-                box.setStrokeStyle(4, 0x00cc44);
-                box.textObj.setColor('#008800');
-            } else {
-                box.setStrokeStyle(4, 0xcc0000);
-                box.textObj.setColor('#cc0000');
-                allCorrect = false;
-            }
-        });
+            // Just a text button, no green bg
+            let buttonText = this.add.text(512, 370, 'Continue to Chapter 2', {
+                fontSize: '22px',
+                color: '#FFD700',
+                backgroundColor: '#333',
+                padding: { left: 24, right: 24, top: 10, bottom: 10 },
+                borderRadius: 8
+            }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
 
-        if (allCorrect) {
-            this.nextBtn.setVisible(true);
-            this.tryAgainBtn.setVisible(false);
-            this.add.text(512, 620, '✅ All correct! Great job!', {
-                fontSize: '28px',
-                color: '#008800'
-            }).setOrigin(0.5).setDepth(10);
-        } else {
-            this.tryAgainBtn.setVisible(true);
-            this.nextBtn.setVisible(false);
-            this.add.text(512, 620, '❌ Some answers are incorrect. Try again!', {
-                fontSize: '28px',
-                color: '#cc0000'
-            }).setOrigin(0.5).setDepth(10);
+            buttonText.on('pointerover', () => buttonText.setStyle({ color: '#fff', backgroundColor: '#FFD700' }));
+            buttonText.on('pointerout', () => buttonText.setStyle({ color: '#FFD700', backgroundColor: '#333' }));
+            buttonText.on('pointerdown', () => {
+                popupContainer.destroy();
+                popupBox.destroy();
+                popupText.destroy();
+                buttonText.destroy();
+                this.scene.start('Chapter2');
+            });
+            return;
         }
-    }
 
-    resetGame() {
-        // Reset all draggables to original positions and colors
-        this.draggables.forEach(box => {
-            box.x = box.originalX;
-            box.y = box.originalY;
-            box.textObj.x = box.originalX;
-            box.textObj.y = box.originalY;
-            box.setStrokeStyle(2, 0x888888);
-            box.textObj.setColor('#222');
-            box.isPlaced = false;
+        const prop = this.properties[this.currentIndex++];
+        const x = this.sys.game.config.width / 2;
+        const y = 420;
+        const boxWidth = 360;
+
+        const tempText = this.add.text(0, 0, prop.text, {
+            fontSize: '18px', color: '#000', wordWrap: { width: boxWidth - 20 }
+        }).setWordWrapWidth(boxWidth - 20).setVisible(false);
+
+        const textHeight = tempText.height;
+        tempText.destroy();
+
+        const boxHeight = textHeight + 32;
+
+        const box = this.add.rectangle(x, y, boxWidth, boxHeight, 0xffffff)
+            .setStrokeStyle(2, 0x888888)
+            .setDepth(3)
+            .setInteractive({ draggable: true });
+
+        const text = this.add.text(x, y, prop.text, {
+            fontSize: '18px', color: '#000', wordWrap: { width: boxWidth - 20 }, align: 'center'
+        }).setOrigin(0.5).setDepth(4);
+
+        box.propType = prop.type;
+        box.textObj = text;
+        box.originalX = x;
+        box.originalY = y;
+
+        this.input.setDraggable(box);
+
+        box.on('drag', (pointer, dragX, dragY) => {
+            box.x = dragX;
+            box.y = dragY;
+            text.x = dragX;
+            text.y = dragY;
         });
-        this.matches = {};
-        this.placedCount = 0;
-        this.tryAgainBtn.setVisible(false);
-        this.nextBtn.setVisible(false);
-        this.resultTexts.forEach(t => t.destroy());
-        this.resultTexts = [];
     }
 }
