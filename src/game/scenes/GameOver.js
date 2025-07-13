@@ -1,38 +1,57 @@
-import { EventBus } from '../EventBus';
+// GameOver.js
 import { Scene } from 'phaser';
-//import { MainMenu } from './MainMenu';
-//import { Game } from './Game';
-export class GameOver extends Scene
-{
-    constructor ()
-    {
-        super('GameOver');
+
+export class GameOver extends Scene {
+  constructor() {
+    super('GameOver');
+  }
+
+  init(data) {
+    this.score = data.score || 0;
+    this.results = data.results || []; // Array of { word, result }
+  }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#333');
+
+    this.add.text(512, 100, 'Game Over', {
+      fontSize: '64px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.add.text(512, 180, `Final Score: ${this.score}`, {
+      fontSize: '40px', color: '#00ff00'
+    }).setOrigin(0.5);
+
+    this.add.text(512, 250, 'Keywords Played:', {
+      fontSize: '32px', color: '#ffffff'
+    }).setOrigin(0.5);
+
+    let startY = 300;
+    const rowHeight = 36;
+
+    if (this.results.length === 0) {
+      this.add.text(512, startY, 'No rounds played.', {
+        fontSize: '24px', color: '#ffcc00'
+      }).setOrigin(0.5);
+    } else {
+      this.results.forEach((entry, index) => {
+        const displayText = `Keyword: ${entry.word} — ${
+          entry.result === 'TT' || entry.result === 'FT' ? '✔ Correct' : '✘ Wrong'
+        }`;
+
+        this.add.text(512, startY + index * rowHeight, displayText, {
+          fontSize: '24px',
+          color: entry.result === 'TT' || entry.result === 'FT' ? '#00ff00' : '#ff4d4d'
+        }).setOrigin(0.5);
+      });
     }
 
-    create ()
-    {
-    this.cameras.main.setBackgroundColor('#FF8317');
-    this.add.text(400, 300, 'Game Over', { fontSize: '64px', fill: '#fff' })
-        .setOrigin(0.5, 0.5)
-        .setAlign('center');
+    this.add.text(512, 600, 'Click to return to main menu', {
+      fontSize: '24px', color: '#ffffff'
+    }).setOrigin(0.5);
 
-    // Get the score from the previous scene (Game.js)
-    const gameScene = this.scene.get('Game');
-    const localScore = gameScene ? gameScene.score : 0;
-
-    this.add.text(400, 350, `Your Score: ${localScore}`, { fontSize: '32px', fill: '#fff' })
-        .setOrigin(0.5, 0.5)
-        .setAlign('center');
-
-    this.add.text(400, 400, 'Click to return to Main Menu', { fontSize: '32px', fill: '#fff' })
-        .setOrigin(0.5, 0.5)
-        .setAlign('center');
-
-    this.input.on('pointerdown', this.changeScene, this);
-    }
-
-    changeScene ()
-    {
-        this.scene.start('MainMenu');
-    }
+    this.input.once('pointerdown', () => {
+      this.scene.start('Mode');
+    });
+  }
 }

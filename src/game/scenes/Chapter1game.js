@@ -7,6 +7,9 @@ export class Chapter1game extends Phaser.Scene {
         this.dropZones = {};
         this.properties = [];
         this.currentIndex = 0;
+        this.correctCount = 0;
+        this.totalCount = 0;
+        this.progressText = null;
     }
 
     preload() {
@@ -19,8 +22,10 @@ export class Chapter1game extends Phaser.Scene {
 
     create() {
         addStoryModeUI(this, {
-            onSettings: (scene, box) => scene.add.text(box.x, box.y, 'Custom Settings', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
-            onBook: (scene, box) => scene.add.text(box.x, box.y, 'Custom Book', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
+            onSettings: (scene, box) =>
+                scene.add.text(box.x, box.y, 'Custom Settings', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
+            onBook: (scene, box) =>
+                scene.add.text(box.x, box.y, 'Custom Book', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
         });
 
         const zoneData = [
@@ -32,12 +37,10 @@ export class Chapter1game extends Phaser.Scene {
         const screenWidth = this.sys.game.config.width;
         const spacing = screenWidth / (zoneData.length + 1);
 
-        // Make drop zones bigger (fit image size)
         zoneData.forEach((data, i) => {
             const x = spacing * (i + 1);
             const y = 380;
             const img = this.add.image(x, y, data.key).setScale(0.15).setOrigin(0.5);
-            // Use image size for drop zone
             const zone = this.add.zone(x, y, img.displayWidth, img.displayHeight).setRectangleDropZone(img.displayWidth, img.displayHeight);
             this.add.text(x, y + img.displayHeight / 2 + 30, data.label, { fontSize: '22px', color: '#000' }).setOrigin(0.5);
             zone.zoneType = data.type;
@@ -53,7 +56,18 @@ export class Chapter1game extends Phaser.Scene {
             { text: 'Sites of exchange between blood and body cell', type: 'capillaries' }
         ]);
 
-        this.showNextProperty();
+        this.totalCount = this.properties.length;
+        this.correctCount = 0;
+
+        this.progressText = this.add.text(screenWidth / 2, 120, `0/${this.totalCount}`, {
+            fontSize: '26px',
+            color: '#333',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        this.showHowToPlayPopup(() => {
+            this.showNextProperty();
+        });
 
         // Popup UI helpers
         let popupContainer = null, popupBox = null, popupText = null, closeBtn = null;
@@ -90,6 +104,8 @@ export class Chapter1game extends Phaser.Scene {
             if (!dropZone || !box) return;
 
             if (dropZone.zoneType === box.propType) {
+                this.correctCount++;
+                this.progressText.setText(`${this.correctCount}/${this.totalCount}`);
                 showPopup('Correct!\n(≧∇≦)ﾉ', '#00aa00', () => {
                     box.textObj.destroy();
                     box.destroy();
@@ -115,7 +131,6 @@ export class Chapter1game extends Phaser.Scene {
 
     showNextProperty() {
         if (this.currentIndex >= this.properties.length) {
-            // Show popup with "Continue to Chapter 2" button (styled like hint popup)
             let popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
                 .setOrigin(0.5).setDepth(299);
             let popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
@@ -124,7 +139,6 @@ export class Chapter1game extends Phaser.Scene {
                 fontSize: '26px', color: '#222', align: 'center'
             }).setOrigin(0.5).setDepth(301);
 
-            // Just a text button, no green bg
             let buttonText = this.add.text(512, 370, 'Continue to Chapter 2', {
                 fontSize: '22px',
                 color: '#FFD700',
@@ -147,7 +161,7 @@ export class Chapter1game extends Phaser.Scene {
 
         const prop = this.properties[this.currentIndex++];
         const x = this.sys.game.config.width / 2;
-        const y = 420;
+        const y = 660;
         const boxWidth = 360;
 
         const tempText = this.add.text(0, 0, prop.text, {
@@ -180,6 +194,31 @@ export class Chapter1game extends Phaser.Scene {
             box.y = dragY;
             text.x = dragX;
             text.y = dragY;
+        });
+    }
+
+    showHowToPlayPopup(onClose) {
+        const overlay = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.66)
+            .setOrigin(0.5)
+            .setInteractive()
+            .setDepth(1000);
+
+        const popup = this.add.rectangle(512, 360, 850, 550, 0xffffff, 1)
+            .setOrigin(0.5)
+            .setDepth(1001);
+
+        const helpText = this.add.text(512, 360, 'How to Play\n\nDrag the properties to the correct blood vessel.\nMatch all correctly to continue.', {
+            fontSize: '26px',
+            color: '#222',
+            align: 'center',
+            wordWrap: { width: 780 }
+        }).setOrigin(0.5).setDepth(1002);
+
+        overlay.once('pointerdown', () => {
+            overlay.destroy();
+            popup.destroy();
+            helpText.destroy();
+            if (onClose) onClose();
         });
     }
 }

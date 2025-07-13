@@ -1,136 +1,155 @@
-// ===== socket.js =====
+// Socket.js - Multiplayer server logic
+import { Server } from 'socket.io';
+import mongoose from 'mongoose';
+import { Gameplay } from './server.js';
+
+const rooms = {};
+const players = {};
+
 export function setupSocket(io) {
-  const players = {};
-
   io.on('connection', (socket) => {
-    console.log(`🔌 Player connected: ${socket.id}`);
+    console.log('[Socket] Connected:', socket.id);
 
-    // Default new player structure
-    players[socket.id] = {
-      id: socket.id,
-      name: null,
-      role: null,
-      room: null,
-    };
-
-    // Register player name
-    socket.on('registerUser', (name) => {
-      if (players[socket.id]) {
-        players[socket.id].name = name;
-        console.log(`🧍 Registered: ${name}`);
-      }
-    });
-
-    // Create Room
     socket.on('createRoom', (roomCode) => {
-      socket.join(roomCode);
-      players[socket.id].room = roomCode;
-      console.log(`🛠️ Room created: ${roomCode}`);
-      socket.emit('roomCreated', roomCode);
+      if (!rooms[roomCode]) {
+        rooms[roomCode] = {
+          host: socket.id,
+          guessers: [],
+          hinters: [],
+          started: false,
+          score: 0
+        };
+        players[socket.id] = { room: roomCode, role: null, name: null };
+        socket.join(roomCode);
+        console.log(`[Room] Created: ${roomCode}`);
+      }
     });
 
-    // Join Room
     socket.on('joinRoom', (roomCode) => {
-      const room = io.sockets.adapter.rooms.get(roomCode);
-      if (!room || room.size >= 3) {
-        socket.emit('roomJoinError', 'Room full or not found');
-        return;
-      }
+      if (!rooms[roomCode]) return socket.emit('roomJoinError', 'Room does not exist.');
+      if (rooms[roomCode].started) return socket.emit('roomJoinError', 'Game already started.');
+      players[socket.id] = { room: roomCode, role: null, name: null };
       socket.join(roomCode);
-      players[socket.id].room = roomCode;
-      console.log(`✅ ${players[socket.id].name || socket.id} joined room ${roomCode}`);
-      socket.emit('roomJoined', roomCode);
-      io.to(roomCode).emit('playerJoined', {
-        playerId: socket.id,
-        name: players[socket.id].name
-      });
+      socket.to(roomCode).emit('playerJoined', socket.id);
+      console.log(`[Room] Joined: ${roomCode}`);
     });
 
-    // Set Role
     socket.on('setRole', (role) => {
+      const roomCode = players[socket.id]?.room;
+      const room = rooms[roomCode];
+      if (!room || room.started || players[socket.id].role) return;
+
       players[socket.id].role = role;
-      const room = players[socket.id].room;
-      console.log(`🎭 ${players[socket.id].name || 'Unknown'} is now a ${typeof role === 'object' ? JSON.stringify(role) : role}`);
-      if (room) {
-        io.to(room).emit('roleUpdated', {
-          playerId: socket.id,
-          role,
-          name: players[socket.id].name
+      if (role === 'guesser' && !room.guessers.includes(socket.id)) {
+        room.guessers.push(socket.id);
+      }
+      if (role === 'hinter' && !room.hinters.includes(socket.id)) {
+        room.hinters.push(socket.id);
+      }
+
+      io.to(roomCode).emit('roleUpdate', {
+        guesser: room.guessers,
+        hinter: room.hinters
+      });
+
+      console.log(`[Socket] Role set: ${role} (${socket.id})`);
+    });
+
+    socket.on('start-game', async ({ roomCode }) => {
+      const room = rooms[roomCode];
+      if (!room || room.started) return;
+
+      room.started = true;
+      room.score = 0;
+
+      try {
+        await Gameplay.deleteMany({ roomCode });
+        const gameplay = new Gameplay({
+          roomCode,
+          hinter: room.hinters.map(id => ({ _id: id, name: players[id]?.name || 'Hinter' })),
+          guesser: room.guessers.map(id => ({ _id: id, name: players[id]?.name || 'Guesser' })),
+          mistakes: [],
+          score: 0
         });
+        await gameplay.save();
+      } catch (err) {
+        console.error('[DB] Gameplay init failed:', err);
       }
+
+      io.to(roomCode).emit('game-started', { startTime: Date.now() });
     });
 
-    // Start Game
-    socket.on('startGame', () => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      console.log(`🎮 Game started in room ${room}`);
-      io.to(room).emit('gameStarted');
+    socket.on('keyword', ({ roomCode, keyword, hint }) => {
+      io.to(roomCode).emit('keyword', { keyword, hint });
     });
 
-    // Keyword & Hint Logic
-    socket.on('newKeyword', (keywordData) => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      io.to(room).emit('keywordForGuesser', keywordData);
-    });
+  socket.on('hint-used', ({ roomCode, hint }) => {
+    console.log(`[Hint] From client — Room: ${roomCode}, Hint: ${hint}`); // ✅ ADD THIS
+    io.to(roomCode).emit('show-hint', { hint });
+  });
 
-    socket.on('sendHint', (hint) => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      io.to(room).emit('hintUsed', hint);
-    });
 
-    socket.on('submitAnswer', (result) => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      io.to(room).emit('answerSubmitted', {
-        playerId: socket.id,
-        result,
-      });
-    });
-
-    socket.on('updateScore', (score) => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      io.to(room).emit('scoreUpdated', {
-        playerId: socket.id,
-        score,
-      });
-    });
-
-    socket.on('gameOver', () => {
-      const room = players[socket.id].room;
-      if (!room) return;
-      io.to(room).emit('gameEnded');
-    });
-
-    socket.on('start-game', ({ roomCode }) => {
-      const room = io.sockets.adapter.rooms.get(roomCode);
+    socket.on('score-update', async ({ roomCode, result }) => {
+      const room = rooms[roomCode];
       if (!room) return;
 
-      // Find all players in the room and their roles
-      const playerIds = Array.from(room);
-      const roles = playerIds.map(id => players[id]?.role);
-      const hasGuesser = roles.includes('guesser');
-      const hasHinter = roles.includes('hinter');
-      const hostId = playerIds[0]; // First joined is host
+      if (!room.score) room.score = 0;
+      if (result === 'TT') room.score += 2;
+      else if (result === 'FT') room.score += 1;
 
-      // Only host can start, and both roles must be filled
-      if (socket.id === hostId && hasGuesser && hasHinter) {
-          io.to(roomCode).emit('game-started');
-          console.log(`✅ Game started in room ${roomCode}`);
+      try {
+        const gameplay = await Gameplay.findOne({ roomCode });
+        if (gameplay) {
+          const lastKeyword = gameplay.mistakes?.at(-1)?.split(':')[1] || 'unknown';
+          gameplay.mistakes.push(`${result}:${lastKeyword}`);
+          gameplay.score = room.score;
+          await gameplay.save();
+        }
+      } catch (err) {
+        console.error('[Socket] Failed to update DB score:', err);
       }
+
+      io.to(roomCode).emit('score-update', { score: room.score });
+    });
+
+    socket.on('player-quit', ({ roomCode }) => {
+      const player = players[socket.id];
+      const room = rooms[roomCode];
+      if (!player || !room) return;
+
+      const { role } = player;
+      const name = player.name || `Player-${socket.id.slice(0, 4)}`;
+
+      if (role && room[role + 's']) {
+        room[role + 's'] = room[role + 's'].filter(id => id !== socket.id);
+      }
+
+      io.to(roomCode).emit('player-left', {
+        userId: socket.id,
+        role,
+        name
+      });
+
+      delete players[socket.id];
+      socket.leave(roomCode);
     });
 
     socket.on('disconnect', () => {
-      const room = players[socket.id]?.room;
-      console.log(`❌ Player disconnected: ${socket.id}`);
-      if (room) {
-        io.to(room).emit('playerDisconnected', socket.id);
+      const player = players[socket.id];
+      if (!player) return;
+
+      const roomCode = player.room;
+      const role = player.role;
+      const name = player.name || `Player-${socket.id.slice(0, 4)}`;
+
+      if (rooms[roomCode]) {
+        if (role && rooms[roomCode][role + 's']) {
+          rooms[roomCode][role + 's'] = rooms[roomCode][role + 's'].filter(id => id !== socket.id);
+        }
+        io.to(roomCode).emit('player-left', { userId: socket.id, role, name });
       }
+
       delete players[socket.id];
     });
   });
 }
-
