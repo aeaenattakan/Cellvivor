@@ -8,6 +8,7 @@ export class Chapter2game extends Phaser.Scene {
     this.cursors = null;
     this.score = 0;
     this.hearts = 3;
+    this.heartIcons = [];
     this.questionIndex = 0;
     this.questions = [];
     this.answeredRooms = new Set();
@@ -18,8 +19,9 @@ export class Chapter2game extends Phaser.Scene {
 
   preload() {
     this.load.image('map', 'assets/map.jpg');
-    this.load.image('player', 'noobynooby.png');
-    this.load.image('enemy', 'assets/star.png');
+    this.load.image('player', 'assets/noobynooby.png');
+    this.load.image('enemy', 'assets/enemy.png');
+    this.load.image('star', 'assets/star.png'); // For both hearts and animation
   }
 
   create() {
@@ -35,12 +37,11 @@ export class Chapter2game extends Phaser.Scene {
     this.questions = Phaser.Utils.Array.Shuffle([
       { room: 'Right Atrium', text: 'The Right Atrium receives blood from the vena cava.' },
       { room: 'Right Ventricle', text: 'The Right Ventricle pumps blood to the lungs.' },
-      { room: 'Pulmonary Artery', text: 'The Pulmonary Artery carries blood to the lungs.' },
+      //{ room: 'Pulmonary Artery', text: 'The Pulmonary Artery carries blood to the lungs.' },
       { room: 'Lungs', text: 'Oxygen enters red blood cells in the lungs.' },
       { room: 'Left Atrium', text: 'The Left Atrium receives oxygenated blood from the lungs.' },
       { room: 'Left Ventricle', text: 'The Left Ventricle pumps oxygenated blood to the body.' },
-      { room: 'Aorta', text: 'The Aorta distributes blood to the whole body.' },
-    ]);
+          ]);
 
     this.player = this.physics.add.sprite(100, 700, 'player');
     this.player.setDisplaySize(64, 64);
@@ -51,10 +52,15 @@ export class Chapter2game extends Phaser.Scene {
     this.createEnemies();
 
     this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
-    this.heartsText = this.add.text(20, 50, 'Hearts: ❤️❤️❤️', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
-    this.progressText = this.add.text(20, 80, 'Progress: 0/7', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
+    this.progressText = this.add.text(100, 100, 'Progress: 0/5', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
 
-    this.askQuestion();
+    // Add heart icons using star.png
+    for (let i = 0; i < this.hearts; i++) {
+      const star = this.add.image(100 + i * 40, 70, 'star').setScrollFactor(0).setDisplaySize(32, 32).setDepth(10);
+      this.heartIcons.push(star);
+    }
+
+    this.showHowToPlayPopup(() => this.askQuestion());
   }
 
   createZones() {
@@ -65,7 +71,7 @@ export class Chapter2game extends Phaser.Scene {
       'Lungs': new Phaser.Geom.Rectangle(330, 60, 380, 100),
       'Left Atrium': new Phaser.Geom.Rectangle(310, 270, 180, 90),
       'Left Ventricle': new Phaser.Geom.Rectangle(260, 390, 200, 130),
-      'Aorta': new Phaser.Geom.Rectangle(360, 550, 300, 100),
+      
     };
 
     for (const [name, rect] of Object.entries(zoneConfig)) {
@@ -87,34 +93,60 @@ export class Chapter2game extends Phaser.Scene {
   }
 
   askQuestion() {
-    if (this.questionIndex >= this.questions.length || this.hearts <= 0) {
-      this.endGame();
-      return;
-    }
-
+    if (this.questionIndex >= this.questions.length) return;
     const q = this.questions[this.questionIndex];
     this.showQuestionPopup(q.text);
+  }
+
+  showHowToPlayPopup(onClose) {
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
+      .setOrigin(0.5)
+      .setInteractive()
+      .setDepth(1000);
+    const popup = this.add.rectangle(512, 384, 850, 550, 0xffffff, 1)
+      .setOrigin(0.5)
+      .setDepth(1001);
+    const helpText = this.add.text(512, 360, 'How to Play\n\nMove to the correct chamber that matches the fact.\nAvoid enemies and answer all 7 correctly! (avoid moving to the wrong area)', {
+      fontSize: '24px',
+      color: '#222',
+      align: 'center',
+      wordWrap: { width: 780 }
+    }).setOrigin(0.5).setDepth(1002);
+
+    overlay.once('pointerdown', () => {
+      overlay.destroy();
+      popup.destroy();
+      helpText.destroy();
+      if (onClose) onClose();
+    });
   }
 
   showQuestionPopup(questionText) {
     this.physics.pause();
     this.canCheckZone = false;
 
-    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.6).setDepth(10);
-    const box = this.add.rectangle(512, 384, 700, 300, 0xffffff).setDepth(11);
-    const text = this.add.text(512, 384, questionText, {
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.5).setDepth(299);
+    const popupBox = this.add.rectangle(512, 320, 700, 200, 0xffffff).setDepth(300);
+    const popupText = this.add.text(512, 320, questionText, {
+      fontSize: '26px',
+      color: '#222',
+      align: 'center',
+      wordWrap: { width: 640 }
+    }).setOrigin(0.5).setDepth(301);
+
+    const closeBtn = this.add.text(512, 410, 'Close', {
       fontSize: '24px',
-      color: '#000',
-      wordWrap: { width: 660 },
-      align: 'center'
-    }).setOrigin(0.5).setDepth(12);
+      color: '#FFD700',
+      backgroundColor: '#333',
+      padding: { left: 16, right: 16, top: 8, bottom: 8 },
+    }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
 
-    this.input.once('pointerdown', () => {
+    closeBtn.on('pointerdown', () => {
       overlay.destroy();
-      box.destroy();
-      text.destroy();
+      popupBox.destroy();
+      popupText.destroy();
+      closeBtn.destroy();
       this.physics.resume();
-
       this.time.delayedCall(500, () => {
         this.canCheckZone = true;
       });
@@ -163,22 +195,56 @@ export class Chapter2game extends Phaser.Scene {
     }
   }
 
-  handleAnswer(correct) {
-    if (correct) {
-      this.score += 10;
-      this.scoreText.setText('Score: ' + this.score);
-      this.showFeedback('Correct!');
-      this.questionIndex++;
-    } else {
-      this.hearts--;
-      this.heartsText.setText('Hearts: ' + '❤️'.repeat(this.hearts));
-      this.showFeedback('Wrong! Respawning...');
+ handleAnswer(correct) {
+  if (correct) {
+    this.score += 10;
+    this.scoreText.setText('Score: ' + this.score);
+    this.questionIndex++;
+    this.progressText.setText(`Progress: ${this.questionIndex}/7`);
+
+    // Score burst text
+    const scoreText = this.add.text(this.player.x, this.player.y - 80, '+10', {
+      fontSize: '28px',
+      color: '#FFD700',
+      fontStyle: 'bold',
+      stroke: '#000',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(10);
+
+    // Regain heart if less than max (3)
+    if (this.hearts < 3) {
+      const restoreIndex = this.hearts;
+      const star = this.heartIcons[restoreIndex];
+      star.setAlpha(1);
+      star.setVisible(true);
+
+
+      this.hearts++;
     }
 
-    this.progressText.setText(`Progress: ${this.questionIndex}/7`);
-    this.player.setPosition(100, 700);
-    this.askQuestion();
+  } else {
+    if (this.hearts > 0) {
+      this.hearts--;
+      const lostHeart = this.heartIcons[this.hearts];
+      if (lostHeart) {
+        this.tweens.add({
+          targets: lostHeart,
+          alpha: 0,
+          scale: 2,
+          duration: 400,
+          ease: 'Cubic.easeOut',
+          onComplete: () => lostHeart.setVisible(false)
+        });
+      }
+    }
+
+    this.showFeedback('Wrong! Respawning...');
   }
+
+  this.player.setPosition(100, 700);
+  this.askQuestion();
+}
+
 
   showFeedback(msg) {
     const txt = this.add.text(512, 384, msg, {
@@ -214,11 +280,14 @@ export class Chapter2game extends Phaser.Scene {
 
   endGame() {
     this.physics.pause();
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.85)
+      .setDepth(1000)
+      .setOrigin(0.5);
     const msg = this.hearts > 0 ? 'You Win!' : 'Game Over!';
-    this.add.text(512, 384, msg, {
+    const text = this.add.text(512, 384, msg, {
       fontSize: '48px',
       color: '#fff'
-    }).setOrigin(0.5).setDepth(20);
+    }).setOrigin(0.5).setDepth(1001);
 
     this.time.delayedCall(3000, () => {
       this.scene.start('Chapter3');

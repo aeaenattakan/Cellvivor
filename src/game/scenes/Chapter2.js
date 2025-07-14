@@ -176,7 +176,7 @@ export class Chapter2 extends Scene {
 
   showCurrentLine() {
     if (this.currentLine >= this.script.length) {
-      // this.scene.start('Chapter2game'); // Optional: auto-start next game scene
+       this.scene.start('Chapter2game'); // Optional: auto-start next game scene
       return;
     }
 
