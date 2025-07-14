@@ -84,33 +84,34 @@ export function setupSocket(io) {
     });
 
   socket.on('hint-used', ({ roomCode, hint }) => {
-    console.log(`[Hint] From client — Room: ${roomCode}, Hint: ${hint}`); // ✅ ADD THIS
+    console.log(`[Hint] From client — Room: ${roomCode}, Hint: ${hint}`); 
     io.to(roomCode).emit('show-hint', { hint });
   });
 
 
-    socket.on('score-update', async ({ roomCode, result }) => {
-      const room = rooms[roomCode];
-      if (!room) return;
+    socket.on('score-update', async ({ roomCode, result, keyword }) => {
+  const room = rooms[roomCode];
+  if (!room) return;
 
-      if (!room.score) room.score = 0;
-      if (result === 'TT') room.score += 2;
-      else if (result === 'FT') room.score += 1;
+  if (!room.score) room.score = 0;
+  if (result === 'TT') room.score += 2;
+  else if (result === 'FT') room.score += 1;
 
-      try {
-        const gameplay = await Gameplay.findOne({ roomCode });
-        if (gameplay) {
-          const lastKeyword = gameplay.mistakes?.at(-1)?.split(':')[1] || 'unknown';
-          gameplay.mistakes.push(`${result}:${lastKeyword}`);
-          gameplay.score = room.score;
-          await gameplay.save();
-        }
-      } catch (err) {
-        console.error('[Socket] Failed to update DB score:', err);
-      }
+  try {
+    const gameplay = await Gameplay.findOne({ roomCode });
+    if (gameplay) {
+      gameplay.mistakes.push(`${result}:${keyword}`);
+      gameplay.score = room.score;
+      await gameplay.save();
+    }
+  } catch (err) {
+    console.error('[Socket] Failed to update DB score:', err);
+  }
 
-      io.to(roomCode).emit('score-update', { score: room.score });
-    });
+  console.log(`[Socket] score-update → room: ${roomCode}, score: ${room.score}`);
+  io.to(roomCode).emit('score-update', { score: room.score });
+});
+
 
     socket.on('player-quit', ({ roomCode }) => {
       const player = players[socket.id];

@@ -10,9 +10,8 @@ export class Game extends Scene {
   }
 
   init(data) {
-    this.roomCode = data.roomCode || null;
-    this.myRole = data.role || null;
-    console.log('[Game.js] Role:', this.myRole);
+    this.roomCode = data.roomCode || 'simple-local';
+    this.myRole = data.role || 'guesser';
     this.startTime = data.startTime || Date.now();
     this.score = 0;
     this.playedKeywords = [];
@@ -24,6 +23,26 @@ export class Game extends Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#FFD700');
+
+    this.scoreText = this.add.text(512, 160, 'Score: 0', {
+      fontSize: '32px',
+      color: '#ffffff'
+    }).setOrigin(0.5).setDepth(200);
+
+    this.updateScoreText = () => {
+      if (this.scoreText) {
+        this.scoreText.setText('Score: ' + this.score);
+      }
+    };
+
+    if (this.roomCode !== 'simple-local') {
+      fetch(`/api/gameplay-score?roomCode=${this.roomCode}`)
+        .then(res => res.json())
+        .then(data => {
+          this.score = data.score || 0;
+          this.updateScoreText();
+        });
+    }
 
     const graphics = this.add.graphics();
     graphics.fillStyle(0xFF8317);
@@ -61,18 +80,19 @@ export class Game extends Scene {
       align: 'center'
     }).setOrigin(0.5).setDepth(1);
 
-    this.scoreText = this.add.text(512, 130, 'Score: 0', {
-      fontSize: '32px',
-      color: '#ffffff'
-    }).setOrigin(0.5).setDepth(200);
-
     const fetchNewKeyword = () => {
-      fetch('http://localhost:5000/api/random-keyword')
+      fetch('/api/random-keyword')
         .then(res => res.json())
         .then(data => {
+          if (!data || !data.keyword) {
+            console.warn('No keyword returned');
+            return;
+          }
           currentKeyword = data.keyword;
-          currentHint = data.hint || 'No hint';
-          socket.emit('keyword', { roomCode: this.roomCode, keyword: currentKeyword, hint: currentHint });
+          currentHint = data.hint || '';
+          if (this.roomCode !== 'simple-local') {
+            socket.emit('keyword', { roomCode: this.roomCode, keyword: currentKeyword, hint: currentHint });
+          }
           showKeyword(currentKeyword);
         });
     };
@@ -94,26 +114,14 @@ export class Game extends Scene {
     };
 
     const showHintPopup = (hint) => {
-      console.log('[Popup] Showing hint:', hint);
-      const background = this.add.rectangle(512, 360, 600, 200, 0xffffff)
-        .setOrigin(0.5)
-        .setDepth(999);
-      const text = this.add.text(512, 360, hint, {
-        fontSize: '24px',
-        color: '#000',
-        wordWrap: { width: 560 },
-        align: 'center'
-      }).setOrigin(0.5).setDepth(1000);
-
-      this.time.delayedCall(3000, () => {
-        background.destroy();
-        text.destroy();
-      });
+      alert('💡 Hint: ' + hint);
     };
 
     socket.on('show-hint', ({ hint }) => {
-      console.log('[Socket] Received show-hint:', hint);
-      showHintPopup(hint);
+      if (!hintUsed) {
+        hintUsed = true;
+        showHintPopup(hint);
+      }
     });
 
     const hintIcon = this.add.image(900, 200, 'hint')
@@ -123,10 +131,12 @@ export class Game extends Scene {
       .setInteractive({ useHandCursor: true });
 
     hintIcon.on('pointerdown', () => {
-      console.log('[Guesser] Hint button clicked');
       if (this.myRole !== 'guesser') return;
-      hintUsed = true;
-      socket.emit('hint-used', { roomCode: this.roomCode, hint: currentHint });
+      if (!hintUsed && currentHint) {
+        hintUsed = true;
+        socket.emit('hint-used', { roomCode: this.roomCode, hint: currentHint });
+        showHintPopup(currentHint);
+      }
     });
 
     if (this.myRole !== 'guesser') {
@@ -143,7 +153,7 @@ export class Game extends Scene {
       callback: () => {
         const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
         const remaining = Math.max(0, 300 - elapsed);
-        timerText.setText(formatTime(remaining));
+        timerText.setText(this.formatTime(remaining));
         if (remaining <= 0) {
           this.scene.start('GameOver', {
             score: this.score,
@@ -155,35 +165,44 @@ export class Game extends Scene {
       loop: true
     });
 
-    const formatTime = (secs) => {
-      const m = Math.floor(secs / 60).toString().padStart(2, '0');
-      const s = (secs % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
-    };
-
     const handleResult = async (value) => {
       result = value;
       this.playedKeywords.push({ word: currentKeyword, result });
-      socket.emit('score-update', {
-        roomCode: this.roomCode,
-        result,
-        keyword: currentKeyword
-      });
-      try {
-        await fetch('http://localhost:5000/api/gameplay-mistake', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomCode: this.roomCode, keyword: currentKeyword, result })
+
+      if (this.roomCode === 'simple-local') {
+        if (result === 'TT') this.score += 2;
+        else if (result === 'FT') this.score += 1;
+        this.updateScoreText();
+      } else {
+        // Estimate score immediately for smoother UI
+        if (result === 'TT') this.score += 2;
+        else if (result === 'FT') this.score += 1;
+        this.updateScoreText();
+
+        socket.emit('score-update', {
+          roomCode: this.roomCode,
+          result,
+          keyword: currentKeyword
         });
-      } catch (err) {
-        console.error('Error saving to DB:', err);
+
+        // ✅ Avoid POST in simple mode
+        try {
+          await fetch('/api/gameplay-mistake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomCode: this.roomCode, keyword: currentKeyword, result })
+          });
+        } catch (err) {
+          console.error('Error saving to DB:', err);
+        }
       }
+
       fetchNewKeyword();
     };
 
     socket.on('score-update', ({ score }) => {
       this.score = score;
-      this.scoreText.setText('Score: ' + score);
+      this.updateScoreText();
     });
 
     const skipButton = this.add.text(412, 400, 'Skip', {
@@ -201,13 +220,11 @@ export class Game extends Scene {
     }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
 
     skipButton.on('pointerdown', () => {
-      console.log('[Guesser] Skip button clicked');
       if (this.myRole !== 'guesser') return;
       handleResult(hintUsed ? 'FF' : 'FF');
     });
 
     correctButton.on('pointerdown', () => {
-      console.log('[Guesser] Correct button clicked');
       if (this.myRole !== 'guesser') return;
       handleResult(hintUsed ? 'FT' : 'TT');
     });
@@ -218,5 +235,11 @@ export class Game extends Scene {
     }
 
     EventBus.emit('current-scene-ready', this);
+  }
+
+  formatTime(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   }
 }

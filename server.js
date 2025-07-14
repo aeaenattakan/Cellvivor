@@ -7,12 +7,14 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Server as SocketIO } from 'socket.io';
-import { setupSocket } from './socket.js'; // ✅ Socket logic
+import { setupSocket } from './socket.js'; 
 
 const app = express();
 const { urlencoded, json } = bodyParser;
 
 const mongo_uri = "mongodb+srv://bammynithirathaya:cellvivor@cluster0.ovn4dde.mongodb.net/guessitdb?retryWrites=true&w=majority&appName=Cluster0";
+//console.log("[SERVER] Loaded server.js with gameplay-mistake route");
+console.log('[BOOT] server.js is starting...');
 
 // --- MongoDB Schemas ---
 const userSchema = new mongoose.Schema({
@@ -67,7 +69,7 @@ const io = new SocketIO(server, {
   },
   pingTimeout: 60000,
 });
-setupSocket(io); // ✅ Attach multiplayer socket logic
+setupSocket(io); 
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
@@ -144,7 +146,6 @@ app.patch('/users/:id', async (req, res) => {
   }
 });
 
-// ✅ Multiplayer-ready gameplay mistake tracking
 app.post('/api/gameplay-mistake', async (req, res) => {
   try {
     const { roomCode, result, keyword } = req.body;
@@ -167,6 +168,7 @@ app.post('/api/gameplay-mistake', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // ✅ Multiplayer-aware score lookup
 app.get('/api/gameplay-score', async (req, res) => {
