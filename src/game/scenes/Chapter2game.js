@@ -21,7 +21,7 @@ export class Chapter2game extends Phaser.Scene {
     this.load.image('map', 'assets/map.jpg');
     this.load.image('player', 'assets/noobynooby.png');
     this.load.image('enemy', 'assets/enemy.png');
-    this.load.image('star', 'assets/star.png'); // For both hearts and animation
+    this.load.image('star', 'assets/star.png');
   }
 
   create() {
@@ -37,11 +37,10 @@ export class Chapter2game extends Phaser.Scene {
     this.questions = Phaser.Utils.Array.Shuffle([
       { room: 'Right Atrium', text: 'The Right Atrium receives blood from the vena cava.' },
       { room: 'Right Ventricle', text: 'The Right Ventricle pumps blood to the lungs.' },
-      //{ room: 'Pulmonary Artery', text: 'The Pulmonary Artery carries blood to the lungs.' },
       { room: 'Lungs', text: 'Oxygen enters red blood cells in the lungs.' },
       { room: 'Left Atrium', text: 'The Left Atrium receives oxygenated blood from the lungs.' },
       { room: 'Left Ventricle', text: 'The Left Ventricle pumps oxygenated blood to the body.' },
-          ]);
+    ]);
 
     this.player = this.physics.add.sprite(100, 700, 'player');
     this.player.setDisplaySize(64, 64);
@@ -54,7 +53,6 @@ export class Chapter2game extends Phaser.Scene {
     this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
     this.progressText = this.add.text(100, 100, 'Progress: 0/5', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
 
-    // Add heart icons using star.png
     for (let i = 0; i < this.hearts; i++) {
       const star = this.add.image(100 + i * 40, 70, 'star').setScrollFactor(0).setDisplaySize(32, 32).setDepth(10);
       this.heartIcons.push(star);
@@ -71,7 +69,6 @@ export class Chapter2game extends Phaser.Scene {
       'Lungs': new Phaser.Geom.Rectangle(330, 60, 380, 100),
       'Left Atrium': new Phaser.Geom.Rectangle(310, 270, 180, 90),
       'Left Ventricle': new Phaser.Geom.Rectangle(260, 390, 200, 130),
-      
     };
 
     for (const [name, rect] of Object.entries(zoneConfig)) {
@@ -195,56 +192,51 @@ export class Chapter2game extends Phaser.Scene {
     }
   }
 
- handleAnswer(correct) {
-  if (correct) {
-    this.score += 10;
-    this.scoreText.setText('Score: ' + this.score);
-    this.questionIndex++;
-    this.progressText.setText(`Progress: ${this.questionIndex}/7`);
+  handleAnswer(correct) {
+    if (correct) {
+      this.score += 10;
+      this.scoreText.setText('Score: ' + this.score);
+      this.questionIndex++;
+      this.progressText.setText(`Progress: ${this.questionIndex}/5`);
 
-    // Score burst text
-    const scoreText = this.add.text(this.player.x, this.player.y - 80, '+10', {
-      fontSize: '28px',
-      color: '#FFD700',
-      fontStyle: 'bold',
-      stroke: '#000',
-      strokeThickness: 4
-    }).setOrigin(0.5).setDepth(10);
+      const scoreText = this.add.text(this.player.x, this.player.y - 80, '+10', {
+        fontSize: '28px',
+        color: '#FFD700',
+        fontStyle: 'bold',
+        stroke: '#000',
+        strokeThickness: 4
+      }).setOrigin(0.5).setDepth(10);
 
-    // Regain heart if less than max (3)
-    if (this.hearts < 3) {
-      const restoreIndex = this.hearts;
-      const star = this.heartIcons[restoreIndex];
-      star.setAlpha(1);
-      star.setVisible(true);
-
-
-      this.hearts++;
-    }
-
-  } else {
-    if (this.hearts > 0) {
-      this.hearts--;
-      const lostHeart = this.heartIcons[this.hearts];
-      if (lostHeart) {
-        this.tweens.add({
-          targets: lostHeart,
-          alpha: 0,
-          scale: 2,
-          duration: 400,
-          ease: 'Cubic.easeOut',
-          onComplete: () => lostHeart.setVisible(false)
-        });
+      if (this.hearts < 3) {
+        const restoreIndex = this.hearts;
+        const star = this.heartIcons[restoreIndex];
+        star.setAlpha(1);
+        star.setVisible(true);
+        this.hearts++;
       }
+    } else {
+      if (this.hearts > 0) {
+        this.hearts--;
+        const lostHeart = this.heartIcons[this.hearts];
+        if (lostHeart) {
+          this.tweens.add({
+            targets: lostHeart,
+            alpha: 0,
+            scale: 0.5, // ✅ Fixed: reduced from 2
+            duration: 300,
+            ease: 'Back.easeIn',
+            onComplete: () => lostHeart.setVisible(false)
+          });
+          this.cameras.main.shake(200, 0.01); // ✅ Optional: camera shake
+        }
+      }
+
+      this.showFeedback('Wrong! Respawning...');
     }
 
-    this.showFeedback('Wrong! Respawning...');
+    this.player.setPosition(100, 700);
+    this.askQuestion();
   }
-
-  this.player.setPosition(100, 700);
-  this.askQuestion();
-}
-
 
   showFeedback(msg) {
     const txt = this.add.text(512, 384, msg, {
