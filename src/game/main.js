@@ -10,6 +10,7 @@ import { Chapter1 } from './scenes/Chapter1';
 import { Chapter2 } from './scenes/Chapter2';
 import { Chapter1game } from './scenes/Chapter1game.js';
 import { Chapter2game } from './scenes/Chapter2game.js'; 
+import { Chapter3 } from './scenes/Chapter3.js'; 
 
 
 const config = {
@@ -30,6 +31,7 @@ const config = {
         Chapter2, // <-- Add Chapter2 here
         Chapter1game,
         Chapter2game,
+        Chapter3,
     ],
       physics: {
     default: 'arcade',

@@ -174,7 +174,6 @@ export class Game extends Scene {
         else if (result === 'FT') this.score += 1;
         this.updateScoreText();
       } else {
-        // Estimate score immediately for smoother UI
         if (result === 'TT') this.score += 2;
         else if (result === 'FT') this.score += 1;
         this.updateScoreText();
@@ -185,7 +184,6 @@ export class Game extends Scene {
           keyword: currentKeyword
         });
 
-        // ✅ Avoid POST in simple mode
         try {
           await fetch('/api/gameplay-mistake', {
             method: 'POST',
