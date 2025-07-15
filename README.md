@@ -105,9 +105,8 @@ Visit http://localhost:5173 to play.
 ## 👩‍🏫 Built For
 
 - Biology educators
-- STEM students (ages 10–16)
+- STEM students (grade 8-12)
 - EdTech platforms
-- Science fairs and hackathons
 
 ---
 

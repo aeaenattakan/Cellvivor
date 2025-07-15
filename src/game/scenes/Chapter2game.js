@@ -105,7 +105,7 @@ export class Chapter2game extends Phaser.Scene {
     const popup = this.add.rectangle(512, 384, 850, 550, 0xffffff, 1)
       .setOrigin(0.5)
       .setDepth(1001);
-    const helpText = this.add.text(512, 360, 'How to Play\n\nMove to the correct chamber that matches the fact.\nAvoid enemies and answer all 4 correctly! (avoid moving to the wrong area)', {
+    const helpText = this.add.text(512, 360, 'Help noobyzom escape from the enemies!!\n\nMove to the correct chamber that matches the fact.\nAvoid enemies and answer all 4 correctly! (avoid moving to the wrong area)', {
       fontSize: '24px',
       color: '#222',
       align: 'center',

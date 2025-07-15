@@ -10,6 +10,7 @@ export class Chapter3 extends Scene {
     this.characterSprites = {};
     this.currentWiggleTween = null;
     this.propertyText = null;
+    this.hasShaken = false;
   }
 
   preload() {
@@ -104,11 +105,10 @@ export class Chapter3 extends Scene {
       this.bgVideo.play(true).setLoop(true);
     }
 
-    // Character lineup centered
     const keys = ['rbc', 'wbc', 'platelet', 'plasma'];
     const spacing = 200;
     const startX = (this.sys.game.config.width / 2) - spacing * (keys.length - 1) / 2;
-    const y = 470;
+    const y = 480;
 
     keys.forEach((key, i) => {
       const sprite = this.add.image(startX + i * spacing, y, key)
@@ -159,26 +159,23 @@ export class Chapter3 extends Scene {
 
   showCurrentLine() {
     if (this.currentLine >= this.script.length) {
-      this.scene.start('Chapter3game');
+      this.triggerEarthquakePopup(); // ⬅ NEW
       return;
     }
 
     const line = this.script[this.currentLine];
 
-    // Stop previous wiggle
     if (this.currentWiggleTween) {
       this.currentWiggleTween.stop();
       this.currentWiggleTween = null;
     }
 
-    // Reset all characters to small scale
     Object.values(this.characterSprites).forEach(sprite => {
       this.tweens.killTweensOf(sprite);
       sprite.setScale(0.5);
       sprite.setAngle(0);
     });
 
-    // Wiggle and enlarge current character
     if (line.character && this.characterSprites[line.character]) {
       const char = this.characterSprites[line.character];
       char.setScale(0.65);
@@ -192,10 +189,8 @@ export class Chapter3 extends Scene {
       });
     }
 
-    // Remove previous property text
     if (this.propertyText) this.propertyText.destroy();
 
-    // Show property description
     if (line.property) {
       this.propertyText = this.add.text(600, 160, line.property, {
         fontSize: '26px',
@@ -221,5 +216,41 @@ export class Chapter3 extends Scene {
     };
 
     this.dialogueUI.startDialogue([line]);
+  }
+
+  triggerEarthquakePopup() {
+    if (this.hasShaken) return;
+    this.hasShaken = true;
+
+    this.cameras.main.shake(900, 0.04);
+
+    this.time.delayedCall(1400, () => {
+      const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
+        .setOrigin(0.5)
+        .setInteractive()
+        .setDepth(1000);
+      const popup = this.add.rectangle(512, 384, 880, 500, 0xffffff, 1)
+        .setOrigin(0.5)
+        .setDepth(1001);
+      const text = this.add.text(512, 350,
+        "No! A wound has appeared and blood is flowing!\nQuick — help Noobyzom stop the bleeding by matching the right blood components to their jobs!\n\n\nObjects will fall from above — red blood cells, white blood cells, platelets, and plasma.\nCatch each one and match it to its correct function before time runs out!",
+        {
+          fontSize: '22px',
+          color: '#222',
+          align: 'center',
+          wordWrap: { width: 800 }
+        }).setOrigin(0.5).setDepth(1002);
+
+      const startBtn = this.add.text(512, 500, 'Start Game', {
+        fontSize: '28px',
+        color: '#FFD700',
+        backgroundColor: '#333',
+        padding: { left: 20, right: 20, top: 10, bottom: 10 },
+      }).setOrigin(0.5).setDepth(1003).setInteractive({ useHandCursor: true });
+
+      startBtn.on('pointerdown', () => {
+        this.scene.start('Chapter3game');
+      });
+    });
   }
 }
