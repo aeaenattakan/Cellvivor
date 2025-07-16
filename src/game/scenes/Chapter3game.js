@@ -1,4 +1,3 @@
-// Chapter3game.js
 import Phaser from 'phaser';
 import { addStoryModeUI } from './UIscene';
 
@@ -9,20 +8,21 @@ export class Chapter3game extends Phaser.Scene {
     this.score = 0;
     this.hearts = 3;
     this.heartIcons = [];
-    this.fallingItems = [];
     this.currentItem = null;
-    this.isCatching = false;
+    this.totalItems = 7;
+    this.correctCount = 0;
   }
 
   preload() {
     this.load.video('bloodflow', 'assets/bloodflow.mp4');
-    this.load.image('player', 'assets/player.png');
     this.load.image('star', 'assets/star.png');
-    const items = ['bloodclot', 'hormone', 'food', 'waste', 'bacteria', 'poison', 'oxygen'];
-    items.forEach(item => this.load.image(item, `assets/${item}.png`));
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
+    this.load.image('rbc', 'assets/rbc.png');
+    this.load.image('wbc', 'assets/wbc.png');
+    this.load.image('platelet', 'assets/platelet.png');
+    this.load.image('plasma', 'assets/plasma.png');
   }
 
   create() {
@@ -33,33 +33,53 @@ export class Chapter3game extends Phaser.Scene {
       onBook: (scene, box) => scene.add.text(box.x, box.y, 'Book', { fontSize: '24px', color: '#222' }).setOrigin(0.5).setDepth(201)
     });
 
-    this.player = this.physics.add.sprite(512, 560, 'player').setCollideWorldBounds(true).setDisplaySize(64, 64);
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.dropKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // Target boxes at bottom
+    // Target boxes
     this.targetBoxes = this.physics.add.staticGroup();
-    const labels = ['RBC', 'WBC', 'Platelets', 'Plasma'];
-    labels.forEach((label, i) => {
+    const boxInfo = [
+      { key: 'rbc', label: 'RBC' },
+      { key: 'wbc', label: 'WBC' },
+      { key: 'platelet', label: 'Platelets' },
+      { key: 'plasma', label: 'Plasma' }
+    ];
+
+    boxInfo.forEach((info, i) => {
       const x = 180 + i * 220;
       const y = 650;
-      const box = this.add.rectangle(x, y, 160, 80, 0xffffff, 0.3).setStrokeStyle(2, 0xffffff);
-      const text = this.add.text(x, y + 40, label, { fontSize: '24px', color: '#fff' }).setOrigin(0.5);
-      this.targetBoxes.add(box);
-      box.label = label;
+      const image = this.add.image(x, y - 69, info.key).setDisplaySize(100, 100).setDepth(1).setScale(0.5);
+      const label = this.add.text(x, y + 60, info.label, {
+        fontSize: '24px',
+        color: '#fff'
+      }).setOrigin(0.5);
+      this.targetBoxes.add(image);
+      image.label = info.label;
+      image.setScale(0.5);
     });
 
-    // Stars (hearts) top-left
-
-    for (let i = 0; i < this.hearts; i++) {
-      const star = this.add.image(100 + i * 40, 70, 'star').setScrollFactor(0).setDisplaySize(32, 32).setDepth(10);
+    for (let i = 0; i < 3; i++) {
+      const star = this.add.image(100 + i * 40, 70, 'star')
+        .setScrollFactor(0)
+        .setDisplaySize(28, 28)
+        .setDepth(10);
       this.heartIcons.push(star);
     }
 
+    this.scoreText = this.add.text(80, 130, 'Score: 0', {
+      fontSize: '24px',
+      color: '#fff'
+    }).setScrollFactor(0).setDepth(11);
 
-    // HP and Timer
-    this.hpText = this.add.text(100, 100, 'HP: 3', { fontSize: '24px', color: '#fff' }).setScrollFactor(0).setDepth(11);
-    this.timerText = this.add.text(512, 92, 'Time: 60', { fontSize: '32px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(11);
+    this.progressText = this.add.text(80, 100, 'Progress: 0/7', {
+      fontSize: '24px',
+      color: '#fff'
+    }).setScrollFactor(0).setDepth(11);
+
+    this.timerText = this.add.text(512, 92, 'Time: 60', {
+      fontSize: '32px',
+      color: '#fff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11);
 
     this.startCountdown(() => this.startGame());
   }
@@ -101,58 +121,56 @@ export class Chapter3game extends Phaser.Scene {
     this.time.addEvent({
       delay: 1200,
       loop: true,
-      callback: () => this.spawnItem()
+      callback: () => {
+        if (!this.currentItem) this.spawnItem();
+      }
     });
   }
 
   spawnItem() {
-    if (this.currentItem) return;
     const itemData = Phaser.Utils.Array.GetRandom([
-      { key: 'bloodclot', target: 'Platelets' },
-      { key: 'hormone', target: 'Plasma' },
-      { key: 'food', target: 'Plasma' },
-      { key: 'waste', target: 'Plasma' },
-      { key: 'bacteria', target: 'WBC' },
-      { key: 'poison', target: 'WBC' },
-      { key: 'oxygen', target: 'RBC' },
+      { label: 'bloodclot', target: 'Platelets' },
+      { label: 'hormone', target: 'Plasma' },
+      { label: 'food', target: 'Plasma' },
+      { label: 'waste', target: 'Plasma' },
+      { label: 'bacteria', target: 'WBC' },
+      { label: 'poison', target: 'WBC' },
+      { label: 'oxygen', target: 'RBC' },
     ]);
 
-    this.currentItem = this.physics.add.sprite(Phaser.Math.Between(100, 924), 0, itemData.key);
-    this.currentItem.setData('target', itemData.target);
-    this.currentItem.setVelocityY(100);
+    const x = Phaser.Math.Between(100, 924);
+    const y = 0;
+
+    const box = this.add.rectangle(0, 0, 100, 40, 0xffffff).setStrokeStyle(2, 0x000000);
+    const label = this.add.text(0, 0, itemData.label, {
+      fontSize: '18px',
+      color: '#000'
+    }).setOrigin(0.5);
+
+    const container = this.add.container(x, y, [box, label]);
+    this.physics.world.enable(container);
+    container.body.setVelocityY(100);
+    container.setData('target', itemData.target);
+    this.currentItem = container;
   }
 
   update() {
-    if (!this.player || this.timer <= 0) return;
+    if (!this.currentItem || this.timer <= 0) return;
 
     if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-200);
+      this.currentItem.x -= 4;
     } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(200);
-    } else {
-      this.player.setVelocityX(0);
+      this.currentItem.x += 4;
     }
 
-    if (this.dropKey.isDown && this.currentItem && !this.isCatching) {
-      const dist = Phaser.Math.Distance.Between(
-        this.player.x, this.player.y,
-        this.currentItem.x, this.currentItem.y
-      );
-      if (dist < 60) {
-        this.isCatching = true;
-        this.handleDrop();
-      }
-    }
-
-    if (this.currentItem && this.currentItem.y > 700) {
-      this.currentItem.destroy();
-      this.currentItem = null;
+    if (this.currentItem.y >= 620) {
+      this.evaluateItem();
     }
   }
 
-  handleDrop() {
+  evaluateItem() {
     const targetBox = this.targetBoxes.getChildren().find(box => {
-      return Phaser.Geom.Rectangle.Contains(box.getBounds(), this.player.x, this.player.y);
+      return Phaser.Geom.Rectangle.Contains(box.getBounds(), this.currentItem.x, this.currentItem.y);
     });
 
     const correctTarget = this.currentItem.getData('target');
@@ -160,6 +178,10 @@ export class Chapter3game extends Phaser.Scene {
 
     if (matched) {
       this.score += 10;
+      this.correctCount++;
+      this.scoreText.setText('Score: ' + this.score);
+      this.progressText.setText(`Progress: ${this.correctCount}/${this.totalItems}`);
+
       if (this.hearts < 3) {
         const heart = this.heartIcons[this.hearts];
         heart.setAlpha(1).setVisible(true);
@@ -173,17 +195,7 @@ export class Chapter3game extends Phaser.Scene {
         this.hearts++;
       }
 
-      const burst = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.5).setDepth(9);
-      this.tweens.add({
-        targets: burst,
-        radius: 60,
-        alpha: 0,
-        duration: 400,
-        ease: 'Cubic.easeOut',
-        onComplete: () => burst.destroy()
-      });
-
-      const scoreText = this.add.text(this.player.x, this.player.y - 80, '+10', {
+      const scoreText = this.add.text(this.currentItem.x, this.currentItem.y - 80, '+10', {
         fontSize: '28px',
         color: '#FFD700',
         fontStyle: 'bold',
@@ -193,12 +205,13 @@ export class Chapter3game extends Phaser.Scene {
 
       this.tweens.add({
         targets: scoreText,
-        y: this.player.y - 120,
+        y: this.currentItem.y - 120,
         alpha: 0,
         duration: 700,
         ease: 'Cubic.easeOut',
         onComplete: () => scoreText.destroy()
       });
+
     } else {
       if (this.hearts > 0) {
         this.hearts--;
@@ -208,35 +221,66 @@ export class Chapter3game extends Phaser.Scene {
           duration: 300
         });
       }
+
+      this.cameras.main.shake(200, 0.01);
+
+      this.targetBoxes.getChildren().forEach(box => {
+        this.tweens.add({
+          targets: box,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 100,
+          yoyo: true,
+          ease: 'Quad.easeInOut',
+          onComplete: () => box.setScale(0.5)
+        });
+      });
     }
 
-    this.hpText.setText('HP: ' + this.hearts);
-    this.currentItem.destroy();
+    this.currentItem.destroy(true);
     this.currentItem = null;
-    this.isCatching = false;
 
     if (this.hearts <= 0) {
       this.endGame(false);
     }
+
+    if (this.correctCount >= this.totalItems) {
+      this.endGame(true);
+    }
   }
 
-  endGame(didWin) {
+  endGame(didWin = false) {
     this.physics.pause();
-    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7).setDepth(10);
-    const msg = didWin ? 'You Win!' : 'Game Over';
+
+    this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.85)
+      .setDepth(1000)
+      .setOrigin(0.5);
+
+    const msg = didWin ? 'You Win!' : 'Game Over!';
     this.add.text(512, 300, msg, {
       fontSize: '48px',
       color: '#fff'
-    }).setOrigin(0.5).setDepth(11);
+    }).setOrigin(0.5).setDepth(1001);
 
-    const btn = this.add.text(512, 400, 'Next', {
+    const playAgainBtn = this.add.text(512, 400, 'Play Again', {
       fontSize: '28px',
       color: '#FFD700',
       backgroundColor: '#333',
       padding: { left: 20, right: 20, top: 10, bottom: 10 },
-    }).setOrigin(0.5).setDepth(11).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
 
-    btn.on('pointerdown', () => {
+    const nextBtn = this.add.text(512, 470, 'Proceed to Chapter 4', {
+      fontSize: '28px',
+      color: '#FFD700',
+      backgroundColor: '#333',
+      padding: { left: 20, right: 20, top: 10, bottom: 10 },
+    }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
+
+    playAgainBtn.on('pointerdown', () => {
+      this.scene.restart();
+    });
+
+    nextBtn.on('pointerdown', () => {
       this.scene.start('Chapter4');
     });
   }

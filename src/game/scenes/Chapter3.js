@@ -156,67 +156,81 @@ export class Chapter3 extends Scene {
     this.currentLine = 0;
     this.showCurrentLine();
   }
-
-  showCurrentLine() {
-    if (this.currentLine >= this.script.length) {
-      this.triggerEarthquakePopup(); // ⬅ NEW
-      return;
-    }
-
-    const line = this.script[this.currentLine];
-
-    if (this.currentWiggleTween) {
-      this.currentWiggleTween.stop();
-      this.currentWiggleTween = null;
-    }
-
-    Object.values(this.characterSprites).forEach(sprite => {
-      this.tweens.killTweensOf(sprite);
-      sprite.setScale(0.5);
-      sprite.setAngle(0);
-    });
-
-    if (line.character && this.characterSprites[line.character]) {
-      const char = this.characterSprites[line.character];
-      char.setScale(0.65);
-
-      this.currentWiggleTween = this.tweens.add({
-        targets: char,
-        angle: { from: -6, to: 6 },
-        duration: 150,
-        yoyo: true,
-        repeat: -1
-      });
-    }
-
-    if (this.propertyText) this.propertyText.destroy();
-
-    if (line.property) {
-      this.propertyText = this.add.text(600, 160, line.property, {
-        fontSize: '26px',
-        color: '#ffffff',
-        wordWrap: { width: 480 },
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        padding: { left: 16, right: 16, top: 10, bottom: 10 }
-      }).setAlpha(0).setDepth(200);
-
-      this.tweens.add({
-        targets: this.propertyText,
-        alpha: 1,
-        duration: 400,
-        ease: 'Power2'
-      });
-    }
-
-    this.backButton.setVisible(this.currentLine > 0);
-
-    this.dialogueUI.onLineComplete = () => {
-      this.currentLine++;
-      this.showCurrentLine();
-    };
-
-    this.dialogueUI.startDialogue([line]);
+showCurrentLine() {
+  if (this.currentLine >= this.script.length) {
+    this.triggerEarthquakePopup(); // ⬅ NEW
+    return;
   }
+
+  const line = this.script[this.currentLine];
+
+  if (this.currentWiggleTween) {
+    this.currentWiggleTween.stop();
+    this.currentWiggleTween = null;
+  }
+
+  Object.values(this.characterSprites).forEach(sprite => {
+    this.tweens.killTweensOf(sprite);
+    sprite.setScale(0.5);
+    sprite.setAngle(0);
+  });
+
+  if (line.character && this.characterSprites[line.character]) {
+    const char = this.characterSprites[line.character];
+    char.setScale(0.65);
+
+    this.currentWiggleTween = this.tweens.add({
+      targets: char,
+      angle: { from: -6, to: 6 },
+      duration: 150,
+      yoyo: true,
+      repeat: -1
+    });
+  }
+
+  if (this.propertyText) this.propertyText.destroy();
+
+  if (line.property) {
+    // Add emoji based on character
+    let emoji = '';
+    switch (line.character) {
+      case 'rbc': emoji = '🧬 '; break;
+      case 'wbc': emoji = '🛡️ '; break;
+      case 'platelet': emoji = '🩹 '; break;
+      case 'plasma': emoji = '💧 '; break;
+    }
+
+    const decoratedProperty = line.property
+      .split('\n')
+      .map(line => `${emoji}${line}`)
+      .join('\n');
+
+    this.propertyText = this.add.text(540, 160, decoratedProperty, {
+      fontSize: '26px',
+      color: '#ffffff',
+      wordWrap: { width: 480 },
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      padding: { left: 16, right: 16, top: 10, bottom: 10 }
+    }).setAlpha(0).setDepth(200);
+
+    this.tweens.add({
+      targets: this.propertyText,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2'
+    });
+  }
+
+  this.backButton.setVisible(this.currentLine > 0);
+
+  this.dialogueUI.onLineComplete = () => {
+    this.currentLine++;
+    this.showCurrentLine();
+  };
+
+  this.dialogueUI.startDialogue([line]);
+}
+
 
   triggerEarthquakePopup() {
     if (this.hasShaken) return;
@@ -233,7 +247,7 @@ export class Chapter3 extends Scene {
         .setOrigin(0.5)
         .setDepth(1001);
       const text = this.add.text(512, 350,
-        "No! A wound has appeared and blood is flowing!\nQuick — help Noobyzom stop the bleeding by matching the right blood components to their jobs!\n\n\nObjects will fall from above — red blood cells, white blood cells, platelets, and plasma.\nCatch each one and match it to its correct function before time runs out!",
+        "Quest 3: No! A wound has appeared and blood is flowing!\nQuick — help Noobyzom stop the bleeding by matching the right blood components to their jobs!\n\n\nObjects will fall from above — red blood cells, white blood cells, platelets, and plasma.\nCatch each one and match it to its correct function before time runs out!",
         {
           fontSize: '22px',
           color: '#222',

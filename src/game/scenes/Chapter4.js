@@ -8,28 +8,17 @@ export class Chapter4 extends Scene {
   constructor() {
     super("Chapter4");
     this.characterSprites = {};
-    this.currentWiggleTween = null;
-    this.propertyText = null;
+    this.currentLine = 0;
+    this.dialogueUI = null;
     this.hasShaken = false;
   }
 
   preload() {
     this.load.image('Chapter4scene1', 'assets/Chapter4scene1.png');
-    this.load.video('bloodflow', 'assets/bloodflow.mp4');
-
-    this.load.image('rbc', 'assets/rbc.png');
-    this.load.image('wbc', 'assets/wbc.png');
-    this.load.image('platelet', 'assets/platelet.png');
-    this.load.image('plasma', 'assets/plasma.png');
-
+    this.load.video('heartbeat', 'assets/heartbeat.mp4');
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
-    this.load.image('5.png', 'assets/5.png');
-    this.load.image('6.png', 'assets/6.png');
-    this.load.image('7.png', 'assets/7.png');
-    this.load.image('8.png', 'assets/8.png');
-    this.load.image('9.png', 'assets/9.png');
   }
 
   create() {
@@ -39,6 +28,12 @@ export class Chapter4 extends Scene {
       .setOrigin(0, 0)
       .setDepth(0)
       .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+
+    this.heartVideo = this.add.video(512, 300, 'heartbeat')
+      .setOrigin(0.5)
+      .setDepth(1)
+      .setScale(0.7)
+      .setPaused(true);
 
     this.startButton = this.add.text(
       this.cameras.main.centerX,
@@ -57,32 +52,13 @@ export class Chapter4 extends Scene {
     });
 
     this.script = [
-      { speaker: "Narrator", text: "Let’s meet the blood components.", sceneStep: 1 },
-      {
-        speaker: "Red Blood Cells (Erythrocytes)",
-        text: "They carry oxygen from the lungs to all the cells.",
-        character: "rbc",
-        property: "Carry oxygen from the lungs to all body cells.\nContain hemoglobin, the protein that binds oxygen."
-      },
-      {
-        speaker: "White Blood Cells (Leukocytes)",
-        text: "They fight infection and remove invaders.",
-        character: "wbc",
-        property: "Protect the body by fighting infections.\nPlay a key role in the immune system."
-      },
-      {
-        speaker: "Platelets (Thrombocytes)",
-        text: "They help blood clot when you're injured.",
-        character: "platelet",
-        property: "Help blood clot, preventing excessive bleeding.\nGather at wounds to seal vessels."
-      },
-      {
-        speaker: "Plasma",
-        text: "The yellow fluid that carries nutrients and cells.",
-        character: "plasma",
-        property: "Transports nutrients, hormones, and blood cells.\nHelps maintain blood pressure and volume."
-      },
-      { speaker: "Narrator", text: "Now that you’ve met them all, let's begin your mission!" }
+      { speaker: "Narrator", text: "Boom... boom... boom... 💓\nCan you feel that?" },
+      { speaker: "Narrator", text: "That’s your pulse — the steady rhythm your heart makes as it pumps blood!" },
+      { speaker: "Narrator", text: "Every time your heart beats, blood rushes through your arteries.\nIt’s like the body's natural drumbeat 🥁 keeping everything in sync!" },
+      { speaker: "Narrator", text: "And guess what?\nYour pulse changes all the time — it speeds up 🏃 when you move, and slows down 🛌 when you rest." },
+      { speaker: "Narrator", text: "When you're chillin’ on the couch? 🛌 → Slow pulse.\nWhen you're running from zombies? 🦟‍♂️🚨 → Super fast!" },
+      { speaker: "Narrator", text: "Now it’s your mission to match your heartbeat to the activity shown." },
+      { speaker: "Narrator", text: "Tap in rhythm — not too fast, not too slow — and keep that heart beating strong! 💪💗" },
     ];
 
     this.startButton.on('pointerdown', () => {
@@ -99,38 +75,14 @@ export class Chapter4 extends Scene {
   }
 
   startStorySequence() {
-    const bgKey = 'bloodflow';
-    if (this.cache.video.exists(bgKey)) {
-      this.bgVideo = this.add.video(0, 0, bgKey).setOrigin(0, 0).setDepth(0);
-      this.bgVideo.play(true).setLoop(true);
-    }
-
-    const keys = ['rbc', 'wbc', 'platelet', 'plasma'];
-    const spacing = 200;
-    const startX = (this.sys.game.config.width / 2) - spacing * (keys.length - 1) / 2;
-    const y = 480;
-
-    keys.forEach((key, i) => {
-      const sprite = this.add.image(startX + i * spacing, y, key)
-        .setScale(0.5)
-        .setDepth(100);
-      this.characterSprites[key] = sprite;
-    });
-
     if (!this.dialogueUI) this.dialogueUI = new DialogueUI(this);
 
     this.nextButton = this.add.text(900, 680, '▶ Next', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      backgroundColor: '#333',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333', padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setInteractive().setDepth(1000);
 
     this.backButton = this.add.text(820, 680, '◀ Back', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      backgroundColor: '#333',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333', padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setInteractive().setDepth(1000);
 
     this.nextButton.on('pointerdown', () => this.dialogueUI.advance());
@@ -153,59 +105,30 @@ export class Chapter4 extends Scene {
       }
     });
 
-    this.currentLine = 0;
     this.showCurrentLine();
   }
 
   showCurrentLine() {
     if (this.currentLine >= this.script.length) {
-      this.triggerEarthquakePopup(); // ⬅ NEW
+      this.heartVideo.destroy();
+      this.triggerGamePopup();
       return;
     }
 
     const line = this.script[this.currentLine];
 
-    if (this.currentWiggleTween) {
-      this.currentWiggleTween.stop();
-      this.currentWiggleTween = null;
-    }
-
-    Object.values(this.characterSprites).forEach(sprite => {
-      this.tweens.killTweensOf(sprite);
-      sprite.setScale(0.5);
-      sprite.setAngle(0);
-    });
-
-    if (line.character && this.characterSprites[line.character]) {
-      const char = this.characterSprites[line.character];
-      char.setScale(0.65);
-
-      this.currentWiggleTween = this.tweens.add({
-        targets: char,
-        angle: { from: -6, to: 6 },
-        duration: 150,
-        yoyo: true,
-        repeat: -1
-      });
-    }
-
-    if (this.propertyText) this.propertyText.destroy();
-
-    if (line.property) {
-      this.propertyText = this.add.text(600, 160, line.property, {
-        fontSize: '26px',
-        color: '#ffffff',
-        wordWrap: { width: 480 },
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        padding: { left: 16, right: 16, top: 10, bottom: 10 }
-      }).setAlpha(0).setDepth(200);
-
-      this.tweens.add({
-        targets: this.propertyText,
-        alpha: 1,
-        duration: 400,
-        ease: 'Power2'
-      });
+    // Adjust heart playback speed
+    if (this.heartVideo) {
+      if (line.text.includes("rest") || line.text.includes("chillin")) {
+        this.heartVideo.setPaused(false);
+        this.heartVideo.setPlaybackRate(0.8);
+      } else if (line.text.includes("running") || line.text.includes("zombies")) {
+        this.heartVideo.setPaused(false);
+        this.heartVideo.setPlaybackRate(1.6);
+      } else {
+        this.heartVideo.setPaused(false);
+        this.heartVideo.setPlaybackRate(1.0);
+      }
     }
 
     this.backButton.setVisible(this.currentLine > 0);
@@ -218,33 +141,24 @@ export class Chapter4 extends Scene {
     this.dialogueUI.startDialogue([line]);
   }
 
-  triggerEarthquakePopup() {
+  triggerGamePopup() {
     if (this.hasShaken) return;
     this.hasShaken = true;
 
     this.cameras.main.shake(900, 0.04);
-
     this.time.delayedCall(1400, () => {
       const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
-        .setOrigin(0.5)
-        .setInteractive()
-        .setDepth(1000);
+        .setOrigin(0.5).setInteractive().setDepth(1000);
       const popup = this.add.rectangle(512, 384, 880, 500, 0xffffff, 1)
-        .setOrigin(0.5)
-        .setDepth(1001);
+        .setOrigin(0.5).setDepth(1001);
       const text = this.add.text(512, 350,
-        "No! A wound has appeared and blood is flowing!\nQuick — help Noobyzom stop the bleeding by matching the right blood components to their jobs!\n\n\nObjects will fall from above — red blood cells, white blood cells, platelets, and plasma.\nCatch each one and match it to its correct function before time runs out!",
+        "Quest 4: Match the Pulse!\nTap the screen in rhythm with different activities.\nToo slow or too fast, and you’ll lose points.\n\nStay in sync — keep the heart healthy!",
         {
-          fontSize: '22px',
-          color: '#222',
-          align: 'center',
-          wordWrap: { width: 800 }
+          fontSize: '22px', color: '#222', align: 'center', wordWrap: { width: 800 }
         }).setOrigin(0.5).setDepth(1002);
 
       const startBtn = this.add.text(512, 500, 'Start Game', {
-        fontSize: '28px',
-        color: '#FFD700',
-        backgroundColor: '#333',
+        fontSize: '28px', color: '#FFD700', backgroundColor: '#333',
         padding: { left: 20, right: 20, top: 10, bottom: 10 },
       }).setOrigin(0.5).setDepth(1003).setInteractive({ useHandCursor: true });
 

@@ -194,7 +194,7 @@ export class Chapter1game extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(1001);
 
-    const helpText = this.add.text(512, 360, 'How to Play\n\nDrag the properties to the correct blood vessel.\nMatch all correctly to continue.', {
+    const helpText = this.add.text(512, 360, 'Quest 1:Your first mission is to understand \n“blood vessels” before you begin your long journey!\n(●ˇ∀ˇ●)\n\nDrag the properties to the correct blood vessel.\nMatch all correctly to continue.', {
       fontSize: '26px',
       color: '#222',
       align: 'center',

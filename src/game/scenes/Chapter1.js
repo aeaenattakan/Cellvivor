@@ -343,20 +343,6 @@ showCurrentLine() {
     ) {
         this.dialogueUI.startDialogue([nextLine]);
 
-        // Show popup for "main routes"
-        this.time.delayedCall(600, () => {
-            if (this.popupContainer) return;
-            this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
-              .setOrigin(0.5).setDepth(299).setInteractive();
-            const popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
-              .setOrigin(0.5).setDepth(300).setInteractive();
-            this.popupText = this.add.text(512, 320, "Quest 1:Your first mission is to understand \n“blood vessels” before you begin your long journey!\n(●ˇ∀ˇ●)", {
-              fontSize: '28px',
-              color: '#222',
-              align: 'center',
-              wordWrap: { width: 440 }
-            }).setOrigin(0.5).setDepth(301);
-
             // Close popup on click outside the white box
             this.popupContainer.on('pointerdown', (pointer) => {
               const px = pointer.x, py = pointer.y;
@@ -389,7 +375,6 @@ showCurrentLine() {
               this.currentLine++;
               this.showCurrentLine();
             };
-        });
     } else {
         this.dialogueUI.startDialogue([nextLine]);
     }

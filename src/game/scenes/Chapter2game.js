@@ -52,8 +52,8 @@ export class Chapter2game extends Phaser.Scene {
     this.createZones();
     this.createEnemies();
 
-    this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
-    this.progressText = this.add.text(100, 100, 'Progress: 0/4', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
+    this.scoreText = this.add.text(80, 130, 'Score: 0', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
+    this.progressText = this.add.text(80, 100, 'Progress: 0/4', { fontSize: '24px', color: '#fff' }).setScrollFactor(0);
 
     for (let i = 0; i < this.hearts; i++) {
       const star = this.add.image(100 + i * 40, 70, 'star').setScrollFactor(0).setDisplaySize(32, 32).setDepth(10);
@@ -105,7 +105,7 @@ export class Chapter2game extends Phaser.Scene {
     const popup = this.add.rectangle(512, 384, 850, 550, 0xffffff, 1)
       .setOrigin(0.5)
       .setDepth(1001);
-    const helpText = this.add.text(512, 360, 'Help noobyzom escape from the enemies!!\n\nMove to the correct chamber that matches the fact.\nAvoid enemies and answer all 4 correctly! (avoid moving to the wrong area)', {
+    const helpText = this.add.text(512, 360, 'Quest 2: Help noobyzom escape from the enemies!!\n\nMove to the correct chamber that matches the fact.\nAvoid enemies and answer all 4 correctly! (avoid moving to the wrong area)', {
       fontSize: '24px',
       color: '#222',
       align: 'center',
