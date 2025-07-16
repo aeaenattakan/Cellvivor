@@ -1,4 +1,3 @@
-// scenes/Chapter4.js
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { addStoryModeUI } from './UIscene';
@@ -7,15 +6,21 @@ import DialogueUI from './DialogueUI';
 export class Chapter4 extends Scene {
   constructor() {
     super("Chapter4");
-    this.characterSprites = {};
     this.currentLine = 0;
-    this.dialogueUI = null;
-    this.hasShaken = false;
+    this.thoughtBubbles = [];
+    this.activityImage = null;
   }
 
   preload() {
-    this.load.image('Chapter4scene1', 'assets/Chapter4scene1.png');
+    this.load.video('Chapter4scene1', 'assets/Chapter4scene1.mp4');
     this.load.video('heartbeat', 'assets/heartbeat.mp4');
+    this.load.image('relaxing', 'assets/relaxing.png');
+    this.load.image('resting', 'assets/resting.png');
+    this.load.image('walking', 'assets/walking.png');
+    this.load.image('Jogging', 'assets/jogging.png');
+    this.load.image('running', 'assets/running.png');
+    this.load.video('Blood', 'assets/Blood.mp4');
+    this.load.video('Bloodflow', 'assets/Bloodflow.mp4');
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
@@ -24,83 +29,81 @@ export class Chapter4 extends Scene {
   create() {
     this.cameras.main.setBackgroundColor('#000000');
 
-    this.coverImage = this.add.image(0, 0, 'Chapter4scene1')
-      .setOrigin(0, 0)
-      .setDepth(0)
-      .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+    this.coverImage = this.add.video(0, 0, 'Chapter4scene1').setOrigin(0, 0).setDepth(0);
+    this.coverImage.setMute(true);
+    this.coverImage.play(true);
 
-    this.heartVideo = this.add.video(512, 300, 'heartbeat')
-      .setOrigin(0.5)
-      .setDepth(1)
-      .setScale(0.7)
-      .setPaused(true);
-
-    this.startButton = this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY + 300,
-      'Start',
-      {
-        fontSize: '48px',
-        color: '#ffffff',
-        padding: { left: 32, right: 32, top: 16, bottom: 16 }
-      }
-    ).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
-
-    addStoryModeUI(this, {
-      onSettings: (scene, box) => scene.add.text(box.x, box.y, 'Settings', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
-      onBook: (scene, box) => scene.add.text(box.x, box.y, 'Book', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
+    this.coverImage.on('play', () => {
+      const scale = Math.min(
+        this.sys.game.config.width / this.coverImage.video.videoWidth,
+        this.sys.game.config.height / this.coverImage.video.videoHeight
+      );
+      this.coverImage.setDisplaySize(
+        this.coverImage.video.videoWidth * scale,
+        this.coverImage.video.videoHeight * scale
+      );
     });
 
-    this.script = [
-      { speaker: "Narrator", text: "Boom... boom... boom... 💓\nCan you feel that?" },
-      { speaker: "Narrator", text: "That’s your pulse — the steady rhythm your heart makes as it pumps blood!" },
-      { speaker: "Narrator", text: "Every time your heart beats, blood rushes through your arteries.\nIt’s like the body's natural drumbeat 🥁 keeping everything in sync!" },
-      { speaker: "Narrator", text: "And guess what?\nYour pulse changes all the time — it speeds up 🏃 when you move, and slows down 🛌 when you rest." },
-      { speaker: "Narrator", text: "When you're chillin’ on the couch? 🛌 → Slow pulse.\nWhen you're running from zombies? 🦟‍♂️🚨 → Super fast!" },
-      { speaker: "Narrator", text: "Now it’s your mission to match your heartbeat to the activity shown." },
-      { speaker: "Narrator", text: "Tap in rhythm — not too fast, not too slow — and keep that heart beating strong! 💪💗" },
-    ];
+    this.startButton = this.add.text(512, 680, 'Start', {
+      fontSize: '48px',
+      color: '#ffffff',
+      padding: { left: 24, right: 24, top: 12, bottom: 12 }
+    }).setOrigin(0.5).setDepth(10).setInteractive({ useHandCursor: true });
+
+    addStoryModeUI(this, {
+      onSettings: (scene, box) => scene.add.text(box.x, box.y, 'Settings', { fontSize: '28px', color: '#222' }).setOrigin(0.5).setDepth(201),
+      onBook: (scene, box) => scene.add.text(box.x, box.y, 'Book', { fontSize: '28px', color: '#222' }).setOrigin(0.5).setDepth(201),
+    });
 
     this.startButton.on('pointerdown', () => {
       this.startButton.destroy();
       this.coverImage.destroy();
       this.startStorySequence();
     });
-
-    this.input.keyboard.on('keydown', (event) => {
-      if ((event.code === 'Space' || event.code === 'Enter') && this.startButton && this.startButton.active) {
-        this.startButton.emit('pointerdown');
-      }
-    });
   }
 
   startStorySequence() {
-    if (!this.dialogueUI) this.dialogueUI = new DialogueUI(this);
+    this.bgVideo = this.add.video(30, 100, 'heartbeat').setOrigin(-0.25, 0).setDepth(0);
+    this.bgVideo.play(true).setLoop(true);
+
+    this.dialogueUI = new DialogueUI(this);
+
+    this.script = [
+      { text: "Boom... boom... boom... Can you feel that?", speed: 0.8 },
+      { text:  "The pulse is the rhythmic throbbing you can feel in your arteries, caused by the beating of the heart.", video: 'Bloodflow' },
+      { text: " It’s like the body's natural drumbeat, marking each heartbeat as blood is pumped through your arteries.",video: 'Blood' },
+      { text: "When you're relaxing 🧘 → ~50–60 bpm", speed: 0.2, bubble: "💨 Deep breathing... low pulse", image: "relaxing" },
+      { text: "When you're resting 🛌 → ~60–80 bpm", speed: 0.5, bubble: "🛌 Resting... conserving energy", image: "resting" },
+      { text: "When you're walking 🚶 → ~80–100 bpm", speed: 1.0, bubble: "🚶 Gentle movement... light pump", image: "walking" },
+      { text: "Jogging 🏃‍♂️ → ~100–140 bpm", speed: 2.5, bubble: "🏃 Jogging... moderate effort", image: "running" },
+      { text: "Running 🏃💨 → ~140–180 bpm", speed: 3, bubble: "💥 Intense exercise!", image: "running" },
+      { text: "Now it’s your mission to match your heartbeat to the activity shown." }
+    ];
 
     this.nextButton = this.add.text(900, 680, '▶ Next', {
-      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333', padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333',
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setInteractive().setDepth(1000);
 
     this.backButton = this.add.text(820, 680, '◀ Back', {
-      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333', padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      fontSize: '20px', fill: '#ffffff', backgroundColor: '#333',
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setInteractive().setDepth(1000);
 
-    this.nextButton.on('pointerdown', () => this.dialogueUI.advance());
+    this.nextButton.on('pointerdown', () => this.advanceDialogue());
     this.backButton.on('pointerdown', () => {
       if (this.currentLine > 0) {
         this.currentLine -= 2;
-        if (this.currentLine < 0) this.currentLine = 0;
         this.showCurrentLine();
       }
     });
 
-    this.input.keyboard.on('keydown-ENTER', () => this.dialogueUI.advance());
-    this.input.keyboard.on('keydown-SPACE', () => this.dialogueUI.advance());
-    this.input.keyboard.on('keydown-RIGHT', () => this.dialogueUI.advance());
+    this.input.keyboard.on('keydown-RIGHT', () => this.advanceDialogue());
+    this.input.keyboard.on('keydown-ENTER', () => this.advanceDialogue());
+    this.input.keyboard.on('keydown-SPACE', () => this.advanceDialogue());
     this.input.keyboard.on('keydown-LEFT', () => {
       if (this.currentLine > 0) {
         this.currentLine -= 2;
-        if (this.currentLine < 0) this.currentLine = 0;
         this.showCurrentLine();
       }
     });
@@ -108,63 +111,94 @@ export class Chapter4 extends Scene {
     this.showCurrentLine();
   }
 
-  showCurrentLine() {
-    if (this.currentLine >= this.script.length) {
-      this.heartVideo.destroy();
-      this.triggerGamePopup();
-      return;
-    }
-
-    const line = this.script[this.currentLine];
-
-    // Adjust heart playback speed
-    if (this.heartVideo) {
-      if (line.text.includes("rest") || line.text.includes("chillin")) {
-        this.heartVideo.setPaused(false);
-        this.heartVideo.setPlaybackRate(0.8);
-      } else if (line.text.includes("running") || line.text.includes("zombies")) {
-        this.heartVideo.setPaused(false);
-        this.heartVideo.setPlaybackRate(1.6);
-      } else {
-        this.heartVideo.setPaused(false);
-        this.heartVideo.setPlaybackRate(1.0);
-      }
-    }
-
-    this.backButton.setVisible(this.currentLine > 0);
-
-    this.dialogueUI.onLineComplete = () => {
-      this.currentLine++;
-      this.showCurrentLine();
-    };
-
-    this.dialogueUI.startDialogue([line]);
+  advanceDialogue() {
+    this.dialogueUI.advance();
   }
 
-  triggerGamePopup() {
-    if (this.hasShaken) return;
-    this.hasShaken = true;
+  showCurrentLine() {
+  if (this.currentLine >= this.script.length) {
+    this.nextButton.destroy();
+    this.backButton.destroy();
+    this.showGameTransition();
+    return;
+  }
 
-    this.cameras.main.shake(900, 0.04);
-    this.time.delayedCall(1400, () => {
-      const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
-        .setOrigin(0.5).setInteractive().setDepth(1000);
-      const popup = this.add.rectangle(512, 384, 880, 500, 0xffffff, 1)
-        .setOrigin(0.5).setDepth(1001);
-      const text = this.add.text(512, 350,
-        "Quest 4: Match the Pulse!\nTap the screen in rhythm with different activities.\nToo slow or too fast, and you’ll lose points.\n\nStay in sync — keep the heart healthy!",
-        {
-          fontSize: '22px', color: '#222', align: 'center', wordWrap: { width: 800 }
-        }).setOrigin(0.5).setDepth(1002);
+  const line = this.script[this.currentLine];
 
-      const startBtn = this.add.text(512, 500, 'Start Game', {
-        fontSize: '28px', color: '#FFD700', backgroundColor: '#333',
-        padding: { left: 20, right: 20, top: 10, bottom: 10 },
-      }).setOrigin(0.5).setDepth(1003).setInteractive({ useHandCursor: true });
+  // 🔁 Background video switch
+  if (this.bgVideo) {
+    this.bgVideo.destroy();
+    this.bgVideo = null;
+  }
 
-      startBtn.on('pointerdown', () => {
-        this.scene.start('Chapter4game');
-      });
+  if (line.video) {
+    this.bgVideo = this.add.video(0, 0, line.video).setOrigin(0, 0).setDepth(0);
+    this.bgVideo.setMute(true);
+    this.bgVideo.play(true);
+  } else {
+    this.bgVideo = this.add.video(30, 100, 'heartbeat').setOrigin(-0.25, 0).setDepth(0);
+    this.bgVideo.setMute(true);
+    this.bgVideo.play(true);
+    if (line.speed) this.bgVideo.setPlaybackRate(line.speed);
+  }
+
+  if (this.activityImage) this.activityImage.destroy();
+  this.thoughtBubbles.forEach(b => b.destroy());
+  this.thoughtBubbles = [];
+
+  if (line.bubble) {
+    const bubble = this.add.text(830, 200, line.bubble, {
+      fontSize: '22px',
+      color: '#000',
+      backgroundColor: '#ffffff',
+      padding: { left: 12, right: 12, top: 8, bottom: 8 }
+    }).setOrigin(1, 1.3).setAlpha(0).setDepth(10);
+
+    this.tweens.add({
+      targets: bubble,
+      x: 920,
+      alpha: 1,
+      duration: 600,
+      ease: 'Sine.easeInOut'
     });
+
+    this.thoughtBubbles.push(bubble);
+  }
+
+  if (line.image) {
+    this.activityImage = this.add.image(830, 200, line.image)
+      .setOrigin(0.8, 0.1)
+      .setScale(1)
+      .setDepth(9);
+  }
+
+  this.dialogueUI.onLineComplete = () => {
+    this.currentLine++;
+    this.showCurrentLine();
+  };
+
+  this.backButton.setVisible(this.currentLine > 0);
+  this.dialogueUI.startDialogue([{ speaker: 'Narrator', text: line.text }]);
+}
+
+
+  showGameTransition() {
+    this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.75).setOrigin(0.5);
+    this.add.rectangle(512, 384, 880, 500, 0xffffff).setOrigin(0.5);
+    this.add.text(512, 360, "Quest 4: Feel the Rhythm\nWatch the activity and tap to match the heartbeat.\nStay on beat to win!", {
+      fontSize: '24px',
+      color: '#222',
+      align: 'center',
+      wordWrap: { width: 800 }
+    }).setOrigin(0.5);
+
+    const startBtn = this.add.text(512, 500, 'Start Game', {
+      fontSize: '28px',
+      color: '#FFD700',
+      backgroundColor: '#333',
+      padding: { left: 20, right: 20, top: 10, bottom: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    startBtn.on('pointerdown', () => this.scene.start('Chapter4game'));
   }
 }

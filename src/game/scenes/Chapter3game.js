@@ -26,22 +26,36 @@ export class Chapter3game extends Phaser.Scene {
   }
 
   create() {
+    this.timer = 60;
+    this.score = 0;
+    this.hearts = 3;
+    this.correctCount = 0;
+    this.currentItem = null;
+    this.heartIcons = [];
+
     this.add.video(0, 0, 'bloodflow').setOrigin(0, 0).play(true).setLoop(true);
 
     addStoryModeUI(this, {
-      onSettings: (scene, box) => scene.add.text(box.x, box.y, 'Settings', { fontSize: '24px', color: '#222' }).setOrigin(0.5).setDepth(201),
-      onBook: (scene, box) => scene.add.text(box.x, box.y, 'Book', { fontSize: '24px', color: '#222' }).setOrigin(0.5).setDepth(201)
+      onSettings: (scene, box) =>
+        scene
+          .add.text(box.x, box.y, 'Settings', { fontSize: '24px', color: '#222' })
+          .setOrigin(0.5)
+          .setDepth(201),
+      onBook: (scene, box) =>
+        scene
+          .add.text(box.x, box.y, 'Book', { fontSize: '24px', color: '#222' })
+          .setOrigin(0.5)
+          .setDepth(201),
     });
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    // Target boxes
     this.targetBoxes = this.physics.add.staticGroup();
     const boxInfo = [
       { key: 'rbc', label: 'RBC' },
       { key: 'wbc', label: 'WBC' },
       { key: 'platelet', label: 'Platelets' },
-      { key: 'plasma', label: 'Plasma' }
+      { key: 'plasma', label: 'Plasma' },
     ];
 
     boxInfo.forEach((info, i) => {
@@ -50,11 +64,10 @@ export class Chapter3game extends Phaser.Scene {
       const image = this.add.image(x, y - 69, info.key).setDisplaySize(100, 100).setDepth(1).setScale(0.5);
       const label = this.add.text(x, y + 60, info.label, {
         fontSize: '24px',
-        color: '#fff'
+        color: '#fff',
       }).setOrigin(0.5);
       this.targetBoxes.add(image);
       image.label = info.label;
-      image.setScale(0.5);
     });
 
     for (let i = 0; i < 3; i++) {
@@ -67,18 +80,18 @@ export class Chapter3game extends Phaser.Scene {
 
     this.scoreText = this.add.text(80, 130, 'Score: 0', {
       fontSize: '24px',
-      color: '#fff'
+      color: '#fff',
     }).setScrollFactor(0).setDepth(11);
 
     this.progressText = this.add.text(80, 100, 'Progress: 0/7', {
       fontSize: '24px',
-      color: '#fff'
+      color: '#fff',
     }).setScrollFactor(0).setDepth(11);
 
     this.timerText = this.add.text(512, 92, 'Time: 60', {
       fontSize: '32px',
       color: '#fff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(11);
 
     this.startCountdown(() => this.startGame());
@@ -87,7 +100,7 @@ export class Chapter3game extends Phaser.Scene {
   startCountdown(onComplete) {
     const countdownText = this.add.text(512, 384, '', {
       fontSize: '80px',
-      color: '#fff'
+      color: '#fff',
     }).setOrigin(0.5);
 
     const numbers = ['3', '2', '1', 'GO!'];
@@ -103,7 +116,7 @@ export class Chapter3game extends Phaser.Scene {
           countdownText.destroy();
           onComplete();
         }
-      }
+      },
     });
   }
 
@@ -115,7 +128,7 @@ export class Chapter3game extends Phaser.Scene {
         this.timer--;
         this.timerText.setText('Time: ' + this.timer);
         if (this.timer <= 0) this.endGame(true);
-      }
+      },
     });
 
     this.time.addEvent({
@@ -123,7 +136,7 @@ export class Chapter3game extends Phaser.Scene {
       loop: true,
       callback: () => {
         if (!this.currentItem) this.spawnItem();
-      }
+      },
     });
   }
 
@@ -144,7 +157,7 @@ export class Chapter3game extends Phaser.Scene {
     const box = this.add.rectangle(0, 0, 100, 40, 0xffffff).setStrokeStyle(2, 0x000000);
     const label = this.add.text(0, 0, itemData.label, {
       fontSize: '18px',
-      color: '#000'
+      color: '#000',
     }).setOrigin(0.5);
 
     const container = this.add.container(x, y, [box, label]);
@@ -169,9 +182,9 @@ export class Chapter3game extends Phaser.Scene {
   }
 
   evaluateItem() {
-    const targetBox = this.targetBoxes.getChildren().find(box => {
-      return Phaser.Geom.Rectangle.Contains(box.getBounds(), this.currentItem.x, this.currentItem.y);
-    });
+    const targetBox = this.targetBoxes.getChildren().find(box =>
+      Phaser.Geom.Rectangle.Contains(box.getBounds(), this.currentItem.x, this.currentItem.y)
+    );
 
     const correctTarget = this.currentItem.getData('target');
     const matched = targetBox && targetBox.label === correctTarget;
@@ -184,13 +197,16 @@ export class Chapter3game extends Phaser.Scene {
 
       if (this.hearts < 3) {
         const heart = this.heartIcons[this.hearts];
-        heart.setAlpha(1).setVisible(true);
+        heart.setAlpha(1).setVisible(true).setScale(0.5);
         this.tweens.add({
           targets: heart,
           scale: { from: 0.5, to: 1.2 },
           yoyo: true,
           duration: 300,
-          ease: 'Sine.easeInOut'
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            heart.setScale(0.5);
+          },
         });
         this.hearts++;
       }
@@ -200,7 +216,7 @@ export class Chapter3game extends Phaser.Scene {
         color: '#FFD700',
         fontStyle: 'bold',
         stroke: '#000',
-        strokeThickness: 4
+        strokeThickness: 4,
       }).setOrigin(0.5).setDepth(10);
 
       this.tweens.add({
@@ -209,16 +225,15 @@ export class Chapter3game extends Phaser.Scene {
         alpha: 0,
         duration: 700,
         ease: 'Cubic.easeOut',
-        onComplete: () => scoreText.destroy()
+        onComplete: () => scoreText.destroy(),
       });
-
     } else {
       if (this.hearts > 0) {
         this.hearts--;
         this.tweens.add({
           targets: this.heartIcons[this.hearts],
           alpha: 0,
-          duration: 300
+          duration: 300,
         });
       }
 
@@ -232,7 +247,7 @@ export class Chapter3game extends Phaser.Scene {
           duration: 100,
           yoyo: true,
           ease: 'Quad.easeInOut',
-          onComplete: () => box.setScale(0.5)
+          onComplete: () => box.setScale(0.5), // FIX: restore scale properly
         });
       });
     }
@@ -254,12 +269,13 @@ export class Chapter3game extends Phaser.Scene {
 
     this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.85)
       .setDepth(1000)
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setInteractive();
 
     const msg = didWin ? 'You Win!' : 'Game Over!';
     this.add.text(512, 300, msg, {
       fontSize: '48px',
-      color: '#fff'
+      color: '#fff',
     }).setOrigin(0.5).setDepth(1001);
 
     const playAgainBtn = this.add.text(512, 400, 'Play Again', {
@@ -267,18 +283,24 @@ export class Chapter3game extends Phaser.Scene {
       color: '#FFD700',
       backgroundColor: '#333',
       padding: { left: 20, right: 20, top: 10, bottom: 10 },
-    }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
+    })
+      .setOrigin(0.5)
+      .setDepth(1002)
+      .setInteractive({ useHandCursor: true });
+
+    playAgainBtn.on('pointerdown', () => {
+      this.scene.restart(); // everything resets
+    });
 
     const nextBtn = this.add.text(512, 470, 'Proceed to Chapter 4', {
       fontSize: '28px',
       color: '#FFD700',
       backgroundColor: '#333',
       padding: { left: 20, right: 20, top: 10, bottom: 10 },
-    }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
-
-    playAgainBtn.on('pointerdown', () => {
-      this.scene.restart();
-    });
+    })
+      .setOrigin(0.5)
+      .setDepth(1002)
+      .setInteractive({ useHandCursor: true });
 
     nextBtn.on('pointerdown', () => {
       this.scene.start('Chapter4');

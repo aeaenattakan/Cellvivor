@@ -28,6 +28,10 @@ export class Chapter2game extends Phaser.Scene {
   }
 
   create() {
+
+    this.hearts = 3;
+    this.heartIcons = [];
+
     this.add.image(512, 384, 'map').setDepth(0);
 
     addStoryModeUI(this, {
@@ -68,7 +72,6 @@ export class Chapter2game extends Phaser.Scene {
     const zoneConfig = {
       'Right Atrium': new Phaser.Geom.Rectangle(530, 270, 160, 100),
       'Right Ventricle': new Phaser.Geom.Rectangle(520, 400, 200, 130),
-      'Pulmonary Artery': new Phaser.Geom.Rectangle(480, 160, 300, 60),
       'Left Atrium': new Phaser.Geom.Rectangle(310, 270, 180, 90),
       'Left Ventricle': new Phaser.Geom.Rectangle(260, 390, 200, 130),
     };
@@ -207,12 +210,13 @@ export class Chapter2game extends Phaser.Scene {
 
       if (this.hearts < this.heartIcons.length) {
   const star = this.heartIcons[this.hearts];
-  star.setVisible(true).setAlpha(1);
+  star.setVisible(true).setAlpha(1).setDisplaySize(32, 32); // <-- Add setDisplaySize
 } else {
   const newStar = this.add.image(100 + (this.hearts) * 40, 70, 'star')
     .setScrollFactor(0).setDisplaySize(32, 32).setDepth(10);
   this.heartIcons.push(newStar);
 }
+
 this.hearts++;
 
     } else {
@@ -276,18 +280,21 @@ this.askQuestion();
     this.time.delayedCall(1500, () => txt.destroy());
   }
 
-  moveEnemies() {
-    this.enemies.forEach(enemy => {
-      const dx = this.player.x - enemy.x;
-      const dy = this.player.y - enemy.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+moveEnemies() {
+  this.enemies.forEach(enemy => {
+    if (!enemy || !enemy.body) return; // <== Fix added here
 
-      if (dist > 0) {
-        const speed = 50;
-        enemy.setVelocity((dx / dist) * speed, (dy / dist) * speed);
-      }
-    });
-  }
+    const dx = this.player.x - enemy.x;
+    const dy = this.player.y - enemy.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 0) {
+      const speed = 50;
+      enemy.setVelocity((dx / dist) * speed, (dy / dist) * speed);
+    }
+  });
+}
+
 
   checkEnemyCollisions() {
     this.enemies.forEach(enemy => {
@@ -323,37 +330,49 @@ this.askQuestion();
 endGame(didWin = false) {
   this.physics.pause();
 
-  const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.85)
-    .setDepth(1000)
-    .setOrigin(0.5);
+this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.85)
+  .setDepth(1000)
+  .setOrigin(0.5)
+  .setInteractive(); // <-- Important
 
-  const msg = didWin ? 'You Win!' : 'Game Over!';
-  const text = this.add.text(512, 300, msg, {
-    fontSize: '48px',
-    color: '#fff'
-  }).setOrigin(0.5).setDepth(1001);
+const msg = didWin ? 'You Win!' : 'Game Over!';
+this.add.text(512, 300, msg, {
+  fontSize: '48px',
+  color: '#fff'
+}).setOrigin(0.5).setDepth(1001);
 
-  const playAgainBtn = this.add.text(512, 400, 'Play Again', {
-    fontSize: '28px',
-    color: '#FFD700',
-    backgroundColor: '#333',
-    padding: { left: 20, right: 20, top: 10, bottom: 10 },
-  }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
+const playAgainBtn = this.add.text(512, 400, 'Play Again', {
+  fontSize: '28px',
+  color: '#FFD700',
+  backgroundColor: '#333',
+  padding: { left: 20, right: 20, top: 10, bottom: 10 },
+})
+.setOrigin(0.5)
+.setDepth(1002)
+.setInteractive({ useHandCursor: true });
 
-  const nextBtn = this.add.text(512, 470, 'Proceed to Chapter 3', {
-    fontSize: '28px',
-    color: '#FFD700',
-    backgroundColor: '#333',
-    padding: { left: 20, right: 20, top: 10, bottom: 10 },
-  }).setOrigin(0.5).setDepth(1002).setInteractive({ useHandCursor: true });
+playAgainBtn.on('pointerdown', () => {
+  playAgainBtn.destroy();
+  nextBtn.destroy();
+  this.scene.restart();
+});
 
-  playAgainBtn.on('pointerdown', () => {
-    this.scene.restart();
-  });
+const nextBtn = this.add.text(512, 470, 'Proceed to Chapter 3', {
+  fontSize: '28px',
+  color: '#FFD700',
+  backgroundColor: '#333',
+  padding: { left: 20, right: 20, top: 10, bottom: 10 },
+})
+.setOrigin(0.5)
+.setDepth(1002)
+.setInteractive({ useHandCursor: true });
 
-  nextBtn.on('pointerdown', () => {
-    this.scene.start('Chapter3');
-  });
+nextBtn.on('pointerdown', () => {
+  playAgainBtn.destroy();
+  nextBtn.destroy();
+  this.scene.start('Chapter3'); // or 'Chapter4' for Chapter3game
+});
+
 }
 
 }

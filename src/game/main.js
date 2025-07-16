@@ -13,6 +13,7 @@ import { Chapter2game } from './scenes/Chapter2game.js';
 import { Chapter3 } from './scenes/Chapter3.js'; 
 import { Chapter3game } from './scenes/Chapter3game.js';
 import { Chapter4 } from './scenes/Chapter4.js';
+import { Chapter4game } from './scenes/Chapter4game.js';
 
 
 const config = {
@@ -30,12 +31,13 @@ const config = {
         Storyboard,
         GameOver,
         Chapter1,
-        Chapter2, // <-- Add Chapter2 here
+        Chapter2,
         Chapter1game,
         Chapter2game,
         Chapter3,
         Chapter3game,
         Chapter4, 
+        Chapter4game
     ],
       physics: {
     default: 'arcade',
