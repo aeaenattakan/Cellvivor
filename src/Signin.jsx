@@ -1,6 +1,6 @@
 import React from 'react';
 import { EventBus } from './game/EventBus'; // adjust path if needed
-
+import { BASE_URL } from './game/utils/apiConfig.js';  // import BASE_URL
 
 let signinPrompted = false;
 
@@ -19,7 +19,7 @@ function Signin({ onSignin }) {
       return;
     }
     // Call backend
-    const response = await fetch('http://localhost:5000/api/signin', {
+    const response = await fetch(`${BASE_URL}/api/signin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email }),
@@ -40,7 +40,6 @@ function Signin({ onSignin }) {
     handlePrompt();
     // Only run once when component mounts
     // eslint-disable-next-line
-    
   }, []);
 
   return null;

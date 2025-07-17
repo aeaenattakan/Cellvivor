@@ -29,7 +29,7 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      socket.current = io('http://localhost:5000');
+      socket.current = io(import.meta.env.VITE_API_URL);
 
       socket.current.emit('registerUser', user.name);
 

@@ -1,7 +1,12 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import io from 'socket.io-client';
-const socket = io('http://localhost:5000');
+const socket = io(import.meta.env.VITE_API_URL);
+console.log('[DEBUG] Socket endpoint:', import.meta.env.VITE_API_URL);
+console.log('[DEBUG] Socket connected:', socket.connected);
+
+import { BASE_URL } from '../utils/apiConfig.js';
+
 
 function generateRoomCode() {
     return Math.random().toString(36).substr(2, 5).toUpperCase();
@@ -73,8 +78,8 @@ export class Mode extends Scene {
 
     newGameBtn.on('pointerdown', async () => {
       if (!user?._id) return;
-      await fetch('progress/save', {
-        method: 'POST',
+await fetch(`${BASE_URL}/progress/save`, {
+  method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user._id, scene: "Chapter1" })
       });
@@ -89,8 +94,7 @@ export class Mode extends Scene {
     const user = JSON.parse(storedUser);
     const userId = user?._id;
     if (!userId) throw new Error('User ID missing');
-
-    const response = await fetch(`/progress/load/${userId}`);
+const response = await fetch(`${BASE_URL}/progress/load/${userId}`);
     if (!response.ok) throw new Error(`Failed to load progress: ${response.statusText}`);
 
     const data = await response.json();

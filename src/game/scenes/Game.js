@@ -2,7 +2,9 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import io from 'socket.io-client';
-const socket = io('http://localhost:5000');
+const socket = io(import.meta.env.VITE_API_URL);
+import { BASE_URL } from '../utils/apiConfig.js';
+
 
 export class Game extends Scene {
   constructor() {
@@ -36,8 +38,8 @@ export class Game extends Scene {
     };
 
     if (this.roomCode !== 'simple-local') {
-      fetch(`/api/gameplay-score?roomCode=${this.roomCode}`)
-        .then(res => res.json())
+      fetch(`${BASE_URL}/api/gameplay-score?roomCode=${this.roomCode}`)
+      .then(res => res.json())
         .then(data => {
           this.score = data.score || 0;
           this.updateScoreText();
@@ -81,8 +83,8 @@ export class Game extends Scene {
     }).setOrigin(0.5).setDepth(1);
 
     const fetchNewKeyword = () => {
-      fetch('/api/random-keyword')
-        .then(res => res.json())
+      fetch(`${BASE_URL}/api/random-keyword`)
+      .then(res => res.json())
         .then(data => {
           if (!data || !data.keyword) {
             console.warn('No keyword returned');
@@ -185,11 +187,20 @@ export class Game extends Scene {
         });
 
         try {
-          await fetch('/api/gameplay-mistake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomCode: this.roomCode, keyword: currentKeyword, result })
-          });
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+await fetch(`${BASE_URL}/api/gameplay-mistake`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    roomCode: this.roomCode,
+    keyword: currentKeyword,
+    result,
+    userId: currentUser._id || null, // Optional user tracking
+    name: currentUser.name || ''
+  })
+});
+
         } catch (err) {
           console.error('Error saving to DB:', err);
         }

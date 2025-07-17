@@ -71,9 +71,11 @@ const io = new SocketIO(server, {
 setupSocket(io); 
 
 const port = process.env.PORT || 5000;
+
 server.listen(port, () => {
-  console.log(`[success] Server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
+
 
 // --- Routes ---
 app.get('/test/:id', (req, res) => {
