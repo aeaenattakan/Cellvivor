@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { addStoryModeUI } from './UIscene';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter4game extends Phaser.Scene {
   constructor() {
@@ -9,23 +10,16 @@ export class Chapter4game extends Phaser.Scene {
     this.score = 0;
     this.hearts = 3;
     this.heartIcons = [];
-    this.bpm = 60;
-    this.userTapBPM = 0;
-    this.bpmDecayTimer = 0;
-    this.isTrial = true;
-    this.beatTime = 0;
-    this.lastTap = 0;
-    this.bpmLabel = null;
+    this.requiredTaps = 0;
+    this.currentTaps = 0;
     this.character = null;
-    this.heartImage = null;
+    this.heartbeatVideo = null;
     this.progressText = null;
     this.scoreText = null;
-    this.accuracyBar = null;
-    this.accuracyTween = null;
-    this.heartbeatVideo = null;
-    this.tapTimes = []; // store recent tap times
-    this.maxTaps = 5;
+    this.targetBpmText = null;
 
+    this.correctPopup = null;
+    this.correctOverlay = null;
   }
 
   preload() {
@@ -39,173 +33,126 @@ export class Chapter4game extends Phaser.Scene {
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
+    this.load.image('correct', 'assets/correct.png');
+    this.load.image('End', 'assets/End.png'); 
   }
 
-create() {
-  this.cameras.main.setBackgroundColor('#000000');
+  create() {
 
-  this.heartbeatVideo = this.add.video(320,350, 'heartbeat').setDepth(0).setOrigin(0.5);
-  this.heartbeatVideo.play(true);
-  this.heartbeatVideo.setLoop(true);
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter4game';
 
-  // Horizontal arrow indicator at center
-  const arrow = this.add.graphics({ fillStyle: { color: 0xffffff } });
-  arrow.fillTriangle(500, 384, 520, 374, 520, 394); // simple right-facing arrow
-  arrow.setDepth(105);
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
 
+    this.cameras.main.setBackgroundColor('#000');
 
-  addStoryModeUI(this);
-  this.createUI();
-    // Add Check BPM button
-    this.checkBtn = this.add.text(800, 630, 'Check BPM', {
-      fontSize: '24px',
-      backgroundColor: '#ffffff',
-      color: '#000000',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
-    }).setOrigin(0.5).setInteractive().setScrollFactor(0).setDepth(100);
+    this.heartbeatVideo = this.add.video(240, 400, 'heartbeat').setScale(1).setDepth(1).play(true);
+    this.heartbeatVideo.setLoop(true);
 
-    this.checkBtn.on('pointerdown', () => {
-      if (!this.isTrial && this.userTapBPM > 0) {
-        const diff = Math.abs(this.userTapBPM - this.bpm);
-        if (diff <= 5) {
-          this.score += 10;
-          this.scoreText.setText('Score: ' + this.score);
-          this.currentRound++;
-          this.time.delayedCall(1000, () => this.startRound());
-        } else {
-          this.loseHeart();
-          this.cameras.main.shake(200, 0.01);
-          this.time.delayedCall(1000, () => this.startRound());
-        }
-      }
-    });
+    addStoryModeUI(this);
+    this.createUI();
 
-  this.generateRounds();
-  this.startRound();
+    this.generateRounds();
+    this.startRound();
 
-  this.input.keyboard.on('keydown-SPACE', () => this.handleTap());
+    this.input.keyboard.on('keydown-SPACE', () => this.handleTap());
+    this.input.on('pointerdown', () => this.handleTap());
 
-  this.input.on('pointerdown', () => this.handleTap());
-}
+    // Black overlay behind popup
+    this.correctOverlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.6
+    ).setDepth(199).setVisible(false);
 
+    // Correct popup container — using the 'correct' image asset only
+    this.correctPopup = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY)
+      .setDepth(200)
+      .setVisible(false);
+
+    const correctImage = this.add.image(0, 0, 'correct').setOrigin(0.5);
+    this.correctPopup.add(correctImage);
+  }
 
   createUI() {
-    this.progressText = this.add.text(80, 100, 'Progress: 0/5', {
-  fontSize: '24px',
-  color: '#fff',
-}).setScrollFactor(0).setDepth(100);
-
-this.scoreText = this.add.text(80, 130, 'Score: 0', {
-  fontSize: '24px',
-  color: '#fff',
-}).setScrollFactor(0).setDepth(100);
-
-    for (let i = 0; i < 3; i++) {
-  const heart = this.add.image(100 + i * 40, 70, 'star')
-    .setScrollFactor(0)
-    .setDisplaySize(28, 28)
-    .setDepth(100);
-  this.heartIcons.push(heart);
-}
-
-
-    this.bpmLabel = this.add.text(800, 180, 'BPM RATE: --', {
+    this.progressText = this.add.text(80, 100, 'Progress: 0/2', {
       fontSize: '24px',
-      fill: '#ffffff'
+      color: '#fff',
+    }).setScrollFactor(0).setDepth(100);
+
+    this.scoreText = this.add.text(80, 130, 'Score: 0', {
+      fontSize: '24px',
+      color: '#fff',
+    }).setScrollFactor(0).setDepth(100);
+
+    this.targetBpmText = this.add.text(750, 180, 'Target BPM: --', {
+      fontSize: '28px',
+      color: '#ffff00',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
+    for (let i = 0; i < 3; i++) {
+      const heart = this.add.image(100 + i * 40, 70, 'star')
+        .setScrollFactor(0)
+        .setDisplaySize(28, 28)
+        .setDepth(100);
+      this.heartIcons.push(heart);
+    }
   }
 
   generateRounds() {
+    // Example rounds; targetInterval = ms between taps
     const rounds = [
-      { label: 'Resting', bpm: 70, image: 'resting' },
-      { label: 'Walking', bpm: 90, image: 'walking' },
-      { label: 'Jogging', bpm: 120, image: 'jogging' },
-      { label: 'Running', bpm: 160, image: 'running' }
+      { label: 'Relaxing (Trial)', targetInterval: 1000, image: 'relaxing' }, // bpm 60 approx
+      { label: 'Resting', targetInterval: 1090, image: 'resting' },          // bpm ~55
+      { label: 'Walking', targetInterval: 860, image: 'walking' },           // bpm ~70
+      { label: 'Jogging', targetInterval: 500, image: 'jogging' },           // bpm ~120
+      { label: 'Running', targetInterval: 400, image: 'running' },           // bpm ~150
     ];
     Phaser.Utils.Array.Shuffle(rounds);
     this.rounds = [
-      { label: 'Relaxing (Trial)', bpm: 60, image: 'relaxing', trial: true },
-      ...rounds.slice(0, 4)
+      rounds[0], // trial
+      rounds[1]  // only 2 rounds for demo
     ];
   }
 
   startRound() {
-    if (this.currentRound >= this.rounds.length) {
-      return this.endGame();
-    }
+    if (this.currentRound >= 2) return this.endGame();
 
     const round = this.rounds[this.currentRound];
-    this.bpm = round.bpm;
-    this.isTrial = !!round.trial;
-    this.progressText.setText(`Round ${this.currentRound + 1} of ${this.rounds.length}`);
+    const bpm = Math.round(60000 / round.targetInterval);
+
+    this.requiredTaps = Math.round(bpm / 10);
+    this.currentTaps = 0;
+
+    this.progressText.setText(`Round ${this.currentRound + 1} of 2`);
+    this.targetBpmText.setText(`Target BPM: ${bpm} \n (Tap ${this.requiredTaps} times)`);
 
     if (this.character) this.character.destroy();
-    this.character = this.add.image(800,400, round.image).setScale(0.6);
-
-    this.animateCharacter();
-    this.heartbeatVideo.setPlaybackRate(this.bpm / 60);
-  }
-
-  animateHeart() {
-    this.tweens.add({
-      targets: this.heartImage,
-      scale: { from: 0.5, to: 0.55 },
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      duration: 60000 / this.bpm
-    });
-  }
-
-  animateCharacter() {
-    this.tweens.add({
-      targets: this.character,
-      y: '+=15',
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      duration: 60000 / this.bpm
-    });
+    this.character = this.add.image(750, 400, round.image).setScale(0.6);
   }
 
   handleTap() {
-const now = this.time.now;
-this.tapTimes.push(now);
-if (this.tapTimes.length > this.maxTaps) this.tapTimes.shift();
+    this.currentTaps++;
 
-let bpmAvg = 0;
-if (this.tapTimes.length >= 4) {
-  const intervals = [];
-  for (let i = 1; i < this.tapTimes.length; i++) {
-    const diff = this.tapTimes[i] - this.tapTimes[i - 1];
-    if (diff >= 300 && diff <= 1200) intervals.push(diff);
-  }
-
-  if (intervals.length >= 2) {
-    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    bpmAvg = Math.round(60000 / avgInterval);
-    bpmAvg = Phaser.Math.Clamp(bpmAvg, 50, 160); // absolute bounds
-  }
-}
-
-this.userTapBPM = bpmAvg;
-this.bpmLabel.setText(`BPM RATE: ${bpmAvg || '--'}`);
-this.bpmDecayTimer = 0;
-
-
-  }
-  
-
-  animateAccuracyBar(percent) {
-    if (this.accuracyTween) this.accuracyTween.stop();
-    this.accuracyBar.width = 300 * percent;
-    this.accuracyTween = this.tweens.add({
-      targets: this.accuracyBar,
-      width: 0,
-      duration: 1000,
-      ease: 'Power1'
-    });
+    if (this.currentTaps === this.requiredTaps) {
+      // Player tapped correct amount → correct!
+      this.score += 10;
+      this.scoreText.setText('Score: ' + this.score);
+      this.addHeart();
+      this.showCorrectPopup();
+    } else if (this.currentTaps > this.requiredTaps) {
+      // Too many taps → incorrect
+      this.loseHeart();
+      this.cameras.main.shake(200, 0.01);
+      this.currentRound++;
+      this.startRound();
+    }
   }
 
   loseHeart() {
@@ -231,24 +178,59 @@ this.bpmDecayTimer = 0;
     }
   }
 
-  update(time, delta) {
-  if (this.userTapBPM > 0) {
-    this.bpmDecayTimer += delta;
-    if (this.bpmDecayTimer >= 500) {
-      let drop = 1;
-      if (this.userTapBPM > 140) drop = 5;
-      else if (this.userTapBPM > 100) drop = 3;
-      else if (this.userTapBPM > 60) drop = 2;
+  showCorrectPopup() {
+    this.correctOverlay.setVisible(true);
+    this.correctPopup.setVisible(true);
+    this.input.enabled = false;
 
-      this.userTapBPM = Math.max(0, this.userTapBPM - drop);
-      this.bpmLabel.setText(`BPM RATE: ${this.userTapBPM}`);
-      this.bpmDecayTimer = 0;
-    }
+    this.time.delayedCall(1500, () => {
+      this.correctPopup.setVisible(false);
+      this.correctOverlay.setVisible(false);
+      this.input.enabled = true;
+
+      this.currentRound++;
+      this.startRound();
+    });
   }
+
+endGame() {
+  // Show end image
+  this.image = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, 'End')
+    .setOrigin(0.5)
+    .setScale(0.7)
+    .setDepth(200);
+
+  // Add semi-transparent overlay (no interaction!)
+  this.overlay = this.add.rectangle(
+    this.cameras.main.centerX,
+    this.cameras.main.centerY,
+    this.cameras.main.width,
+    this.cameras.main.height,
+    0x000000,
+    0.6
+  ).setDepth(199); // No .setInteractive()
+
+  // Add continue button
+  this.continueButton = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY + 200, 'Continue', {
+    fontSize: '32px',
+    backgroundColor: '#4BC6F0',
+    color: '#fff',
+    padding: { x: 20, y: 10 },
+    fontStyle: 'bold',
+    align: 'center',
+    fixedWidth: 200
+  })
+  .setOrigin(0.5)
+  .setDepth(201)
+  .setInteractive({ useHandCursor: true });
+
+  // Button click handler
+  this.continueButton.on('pointerdown', () => {
+    this.scene.start('Mode', { score: this.score });
+  });
+
+  // Do NOT disable input here so button works
+  // this.input.enabled = false;
 }
 
-
-  endGame() {
-    this.scene.start('GameOverScene', { score: this.score });
-  }
 }

@@ -27,10 +27,10 @@ export class Mode extends Scene {
     }
 
     create() {
-        const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
-        const playerName = user?.name || "Anonymous";
-        this.cameras.main.setBackgroundColor('#fa821a');
+            const user = JSON.parse(localStorage.getItem('currentUser')) || JSON.parse(localStorage.getItem('user'));
+            const playerName = user?.name || "Anonymous";
 
+        this.cameras.main.setBackgroundColor('#fa821a');
         const headerY = this.cameras.main.height * 0.22;
         const headerText = this.add.text(this.cameras.main.width / 2, headerY, 'MODE', {
             fontSize: '68px',
@@ -47,46 +47,72 @@ export class Mode extends Scene {
 
         // --- Story Mode Popup ---
         const storyboardBtn = this.add.image(this.cameras.main.width * 0.265, buttonY, 'storymode')
-            .setOrigin(0.5).setScale(0.145).setInteractive({ useHandCursor: true }).setDepth(50);
+        .setOrigin(0.5).setScale(0.145).setInteractive({ useHandCursor: true }).setDepth(50);
 
-        storyboardBtn.on('pointerdown', () => {
-            if (this.popupContainer) return;
 
-            this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5).setOrigin(0.5).setDepth(299);
-            const popupBox = this.add.rectangle(512, 320, 500, 250, 0xffffff, 1).setOrigin(0.5).setDepth(300);
-            const popupText = this.add.text(512, 270, 'continue the story or start again?', {
-                fontSize: '28px', color: '#222', wordWrap: { width: 440 }, align: 'center'
-            }).setOrigin(0.5).setDepth(301);
+    storyboardBtn.on('pointerdown', () => {
+    if (this.popupContainer) return;
 
-            const newGameBtn = this.add.image(400, 390, 'NewgameButton')
-                .setOrigin(0.5).setScale(0.1).setDepth(335).setInteractive({ useHandCursor: true });
+    this.popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5).setOrigin(0.5).setDepth(299);
+    const popupBox = this.add.rectangle(512, 320, 500, 250, 0xffffff, 1).setOrigin(0.5).setDepth(300);
+    const popupText = this.add.text(512, 270, 'Continue the story or start again?', {
+      fontSize: '28px', color: '#222', wordWrap: { width: 440 }, align: 'center'
+    }).setOrigin(0.5).setDepth(301);
 
-            const continueBtn = this.add.image(624, 390, 'ContinueButton')
-                .setOrigin(0.5).setScale(0.1).setDepth(335).setInteractive({ useHandCursor: true });
+    const newGameBtn = this.add.image(400, 390, 'NewgameButton')
+      .setOrigin(0.5).setScale(0.1).setDepth(335).setInteractive({ useHandCursor: true });
 
-            const closeBtn = this.add.text(750, 208, '✕', {
-                fontSize: '32px', color: '#888', fontStyle: 'bold',
-                backgroundColor: '#fff', padding: { left: 8, right: 8, top: 2, bottom: 2 },
-                borderRadius: 16, align: 'center'
-            }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
+    const continueBtn = this.add.image(624, 390, 'ContinueButton')
+      .setOrigin(0.5).setScale(0.1).setDepth(335).setInteractive({ useHandCursor: true });
 
-            newGameBtn.on('pointerdown', async () => {
-                if (!user?._id) return;
-                await fetch('http://localhost:5000/progress/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user._id, scene: "Chapter1" })
-                });
-                this.scene.start('Chapter1');
-            });
+    const closeBtn = this.add.text(750, 208, '✕', {
+      fontSize: '32px', color: '#888', fontStyle: 'bold',
+      backgroundColor: '#fff', padding: { left: 8, right: 8, top: 2, bottom: 2 },
+      borderRadius: 16, align: 'center'
+    }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
 
-            continueBtn.on('pointerdown', () => this.scene.start('Chapter1'));
+    newGameBtn.on('pointerdown', async () => {
+      if (!user?._id) return;
+      await fetch('progress/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user._id, scene: "Chapter1" })
+      });
+      this.scene.start('Chapter1');
+    });
 
-            closeBtn.on('pointerdown', () => {
-                [popupBox, popupText, newGameBtn, continueBtn, closeBtn, this.popupContainer].forEach(e => e?.destroy());
-                this.popupContainer = null;
-            });
-        });
+   continueBtn.on('pointerdown', async () => {
+  try {
+    const storedUser = localStorage.getItem('currentUser') || localStorage.getItem('user');
+    if (!storedUser) throw new Error('No user data in localStorage');
+
+    const user = JSON.parse(storedUser);
+    const userId = user?._id;
+    if (!userId) throw new Error('User ID missing');
+
+    const response = await fetch(`/progress/load/${userId}`);
+    if (!response.ok) throw new Error(`Failed to load progress: ${response.statusText}`);
+
+    const data = await response.json();
+    const lastScene = data.lastScene || 'Chapter1';
+
+    const sceneToStart = sceneMap[lastScene] || 'Chapter1';
+    console.log('Continuing to:', sceneToStart);
+    this.scene.start(sceneToStart);
+
+  } catch (err) {
+    console.error('Error loading progress:', err);
+    this.scene.start('Chapter1'); // Fallback
+  }
+});
+
+
+
+    closeBtn.on('pointerdown', () => {
+      [popupBox, popupText, newGameBtn, continueBtn, closeBtn, this.popupContainer].forEach(e => e?.destroy());
+      this.popupContainer = null;
+    });
+  });
 
         // --- Multiplayer Popup ---
         const gameModeBtn = this.add.image(this.cameras.main.width * 0.715, buttonY, 'multimode')

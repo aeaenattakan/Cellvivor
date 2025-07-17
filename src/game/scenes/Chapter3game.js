@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { addStoryModeUI } from './UIscene';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter3game extends Phaser.Scene {
   constructor() {
@@ -26,6 +27,14 @@ export class Chapter3game extends Phaser.Scene {
   }
 
   create() {
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter3game';
+
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
+
     this.timer = 60;
     this.score = 0;
     this.hearts = 3;
@@ -247,7 +256,7 @@ export class Chapter3game extends Phaser.Scene {
           duration: 100,
           yoyo: true,
           ease: 'Quad.easeInOut',
-          onComplete: () => box.setScale(0.5), // FIX: restore scale properly
+          onComplete: () => box.setScale(0.5), 
         });
       });
     }

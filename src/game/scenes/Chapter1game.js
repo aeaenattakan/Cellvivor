@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { addStoryModeUI } from './UIscene';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter1game extends Phaser.Scene {
   constructor() {
@@ -18,9 +19,20 @@ export class Chapter1game extends Phaser.Scene {
     this.load.image('Artery', 'assets/Artery.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
+    this.load.image('correct', 'assets/correct.png');     
+    this.load.image('tryAgain', 'assets/tryAgain.png');
+    this.load.image('quest1', 'assets/quest1.png');     
   }
 
   create() {
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter1game';
+
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
+
     addStoryModeUI(this, {
       onSettings: (scene, box) =>
         scene.add.text(box.x, box.y, 'Custom Settings', { fontSize: '32px', color: '#222' }).setOrigin(0.5).setDepth(201),
@@ -69,51 +81,21 @@ export class Chapter1game extends Phaser.Scene {
       this.showNextProperty();
     });
 
-    // Popup helpers
-    let popupContainer = null, popupBox = null, popupText = null, closeBtn = null;
-
-    const showPopup = (msg, color = '#222', onClose = null) => {
-      if (popupContainer) return;
-      popupContainer = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.5)
-        .setOrigin(0.5).setDepth(299);
-      popupBox = this.add.rectangle(512, 320, 500, 200, 0xffffff, 1)
-        .setOrigin(0.5).setDepth(300);
-      popupText = this.add.text(512, 320, msg, {
-        fontSize: '28px',
-        color: color,
-        wordWrap: { width: 440 },
-        align: 'center'
-      }).setOrigin(0.5).setDepth(301);
-      closeBtn = this.add.text(512, 410, 'Close', {
-        fontSize: '24px',
-        color: '#FFD700',
-        backgroundColor: '#333',
-        padding: { left: 16, right: 16, top: 8, bottom: 8 },
-        borderRadius: 8
-      }).setOrigin(0.5).setDepth(302).setInteractive({ useHandCursor: true });
-      closeBtn.on('pointerdown', () => {
-        popupContainer.destroy();
-        popupBox.destroy();
-        popupText.destroy();
-        closeBtn.destroy();
-        popupContainer = popupBox = popupText = closeBtn = null;
-        if (typeof onClose === 'function') onClose();
-      });
-    };
-
     this.input.on('drop', (pointer, box, dropZone) => {
       if (!dropZone || !box) return;
 
       if (dropZone.zoneType === box.propType) {
         this.correctCount++;
         this.progressText.setText(`${this.correctCount}/${this.totalCount}`);
-        showPopup('Correct!\n(≧∇≦)ﾉ', '#00aa00', () => {
+
+        this.showImagePopup('correct', () => {
           box.textObj.destroy();
           box.destroy();
           this.showNextProperty();
         });
+
       } else {
-        showPopup('Try Again!\nヽ(*。>Д<)o゜', '#ff0000', () => {
+        this.showImagePopup('tryAgain', () => {
           this.tweens.add({
             targets: [box, box.textObj],
             x: box.originalX,
@@ -184,27 +166,55 @@ export class Chapter1game extends Phaser.Scene {
     });
   }
 
+
+  showImagePopup(key, onDone) {
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.6
+    ).setDepth(998);
+
+    const popup = this.add.image(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      key
+    )
+      .setOrigin(0.5)
+      .setDepth(999)
+      .setScale(0.8)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: popup,
+      alpha: 1,
+      duration: 300,
+      yoyo: true,
+      hold: 700,
+      onComplete: () => {
+        popup.destroy();
+        overlay.destroy();
+        if (onDone) onDone();
+      }
+    });
+  }
+
   showHowToPlayPopup(onClose) {
     const overlay = this.add.rectangle(512, 360, 1024, 800, 0x000000, 0.66)
       .setOrigin(0.5)
       .setInteractive()
       .setDepth(1000);
 
-    const popup = this.add.rectangle(512, 360, 850, 550, 0xffffff, 1)
+    const popup = this.add.image(512, 360, 'quest1')
       .setOrigin(0.5)
-      .setDepth(1001);
-
-    const helpText = this.add.text(512, 360, 'Quest 1:Your first mission is to understand \n“blood vessels” before you begin your long journey!\n(●ˇ∀ˇ●)\n\nDrag the properties to the correct blood vessel.\nMatch all correctly to continue.', {
-      fontSize: '26px',
-      color: '#222',
-      align: 'center',
-      wordWrap: { width: 780 }
-    }).setOrigin(0.5).setDepth(1002);
+      .setDepth(1001)
+      .setScale(0.5);
 
     overlay.once('pointerdown', () => {
       overlay.destroy();
       popup.destroy();
-      helpText.destroy();
       if (onClose) onClose();
     });
   }

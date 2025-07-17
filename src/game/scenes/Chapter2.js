@@ -3,6 +3,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { addStoryModeUI } from './UIscene';
 import DialogueUI from './DialogueUI';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter2 extends Scene {
   constructor() {
@@ -53,6 +54,16 @@ export class Chapter2 extends Scene {
   }
 
   create() {
+
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter2';
+
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
+;
+  
     this.cameras.main.setBackgroundColor('#000000');
 
     this.coverImage = this.add.video(0, 0, 'Chapter2scene1')

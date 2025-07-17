@@ -3,6 +3,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { addStoryModeUI } from './UIscene';
 import DialogueUI from './DialogueUI';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter3 extends Scene {
   constructor() {
@@ -30,9 +31,18 @@ export class Chapter3 extends Scene {
     this.load.image('7.png', 'assets/7.png');
     this.load.image('8.png', 'assets/8.png');
     this.load.image('9.png', 'assets/9.png');
+    this.load.image('quest3', 'assets/quest3.png');
   }
 
   create() {
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter3';
+
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
+
     this.cameras.main.setBackgroundColor('#000000');
 
     this.coverImage = this.add.image(0, 0, 'Chapter3scene1')
@@ -233,38 +243,42 @@ showCurrentLine() {
 
 
   triggerEarthquakePopup() {
-    if (this.hasShaken) return;
-    this.hasShaken = true;
+  if (this.hasShaken) return;
+  this.hasShaken = true;
 
-    this.cameras.main.shake(900, 0.04);
+  this.cameras.main.shake(900, 0.04);
 
-    this.time.delayedCall(1400, () => {
-      const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
-        .setOrigin(0.5)
-        .setInteractive()
-        .setDepth(1000);
-      const popup = this.add.rectangle(512, 384, 880, 500, 0xffffff, 1)
-        .setOrigin(0.5)
-        .setDepth(1001);
-      const text = this.add.text(512, 350,
-        "Quest 3: No! A wound has appeared and blood is flowing!\nQuick — help Noobyzom stop the bleeding by matching the right blood components to their jobs!\n\n\nObjects will fall from above — red blood cells, white blood cells, platelets, and plasma.\nCatch each one and match it to its correct function before time runs out!",
-        {
-          fontSize: '22px',
-          color: '#222',
-          align: 'center',
-          wordWrap: { width: 800 }
-        }).setOrigin(0.5).setDepth(1002);
+  this.time.delayedCall(1400, () => {
+    // Add a semi-transparent dark overlay
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
+      .setOrigin(0.5)
+      .setInteractive()
+      .setDepth(1000);
 
-      const startBtn = this.add.text(512, 500, 'Start Game', {
-        fontSize: '28px',
-        color: '#FFD700',
-        backgroundColor: '#333',
-        padding: { left: 20, right: 20, top: 10, bottom: 10 },
-      }).setOrigin(0.5).setDepth(1003).setInteractive({ useHandCursor: true });
+    // Show the quest3 image as popup background
+    const popup = this.add.image(512, 384, 'quest3')
+      .setOrigin(0.5)
+      .setDepth(1001)
+      .setScale(0.48);
 
-      startBtn.on('pointerdown', () => {
-        this.scene.start('Chapter3game');
-      });
+    // Add a "Start Game" button below the popup
+    const startBtn = this.add.text(512, 680, 'Start Game', {
+      fontSize: '28px',
+      color: '#FFD700',
+      backgroundColor: '#333',
+      padding: { left: 20, right: 20, top: 10, bottom: 10 },
+    })
+      .setOrigin(0.5)
+      .setDepth(1002)
+      .setInteractive({ useHandCursor: true });
+
+    startBtn.on('pointerdown', () => {
+      overlay.destroy();
+      popup.destroy();
+      startBtn.destroy();
+      this.scene.start('Chapter3game');
     });
-  }
+  });
+}
+
 }

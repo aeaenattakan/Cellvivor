@@ -2,6 +2,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { addStoryModeUI } from './UIscene';
 import DialogueUI from './DialogueUI';
+import { saveGameProgress } from '../utils/saveProgress.js';
 
 export class Chapter4 extends Scene {
   constructor() {
@@ -24,9 +25,20 @@ export class Chapter4 extends Scene {
     this.load.image('magnifying', 'assets/magnifying.png');
     this.load.image('setting', 'assets/setting.png');
     this.load.image('book', 'assets/book.png');
+
+    // Add quest4 asset for How To Play popup
+    this.load.image('quest4', 'assets/quest4.png');
   }
 
   create() {
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userId = user?._id;
+      const currentChapter = 'Chapter4';
+
+      console.log('userId:', userId, 'currentChapter:', currentChapter);
+      saveGameProgress(userId, currentChapter);
+
     this.cameras.main.setBackgroundColor('#000000');
 
     this.coverImage = this.add.video(0, 0, 'Chapter4scene1').setOrigin(0, 0).setDepth(0);
@@ -116,89 +128,100 @@ export class Chapter4 extends Scene {
   }
 
   showCurrentLine() {
-  if (this.currentLine >= this.script.length) {
-    this.nextButton.destroy();
-    this.backButton.destroy();
-    this.showGameTransition();
-    return;
+    if (this.currentLine >= this.script.length) {
+      this.nextButton.destroy();
+      this.backButton.destroy();
+      this.showGameTransition();
+      return;
+    }
+
+    const line = this.script[this.currentLine];
+
+    // 🔁 Background video switch
+    if (this.bgVideo) {
+      this.bgVideo.destroy();
+      this.bgVideo = null;
+    }
+
+    if (line.video) {
+      this.bgVideo = this.add.video(0, 0, line.video).setOrigin(0, 0).setDepth(0);
+      this.bgVideo.setMute(true);
+      this.bgVideo.play(true);
+    } else {
+      this.bgVideo = this.add.video(30, 100, 'heartbeat').setOrigin(-0.25, 0).setDepth(0);
+      this.bgVideo.setMute(true);
+      this.bgVideo.play(true);
+      if (line.speed) this.bgVideo.setPlaybackRate(line.speed);
+    }
+
+    if (this.activityImage) this.activityImage.destroy();
+    this.thoughtBubbles.forEach(b => b.destroy());
+    this.thoughtBubbles = [];
+
+    if (line.bubble) {
+      const bubble = this.add.text(830, 200, line.bubble, {
+        fontSize: '22px',
+        color: '#000',
+        backgroundColor: '#ffffff',
+        padding: { left: 12, right: 12, top: 8, bottom: 8 }
+      }).setOrigin(1, 1.3).setAlpha(0).setDepth(10);
+
+      this.tweens.add({
+        targets: bubble,
+        x: 920,
+        alpha: 1,
+        duration: 600,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.thoughtBubbles.push(bubble);
+    }
+
+    if (line.image) {
+      this.activityImage = this.add.image(830, 200, line.image)
+        .setOrigin(0.8, 0.1)
+        .setScale(1)
+        .setDepth(9);
+    }
+
+    this.dialogueUI.onLineComplete = () => {
+      this.currentLine++;
+      this.showCurrentLine();
+    };
+
+    this.backButton.setVisible(this.currentLine > 0);
+    this.dialogueUI.startDialogue([{ speaker: 'Narrator', text: line.text }]);
   }
-
-  const line = this.script[this.currentLine];
-
-  // 🔁 Background video switch
-  if (this.bgVideo) {
-    this.bgVideo.destroy();
-    this.bgVideo = null;
-  }
-
-  if (line.video) {
-    this.bgVideo = this.add.video(0, 0, line.video).setOrigin(0, 0).setDepth(0);
-    this.bgVideo.setMute(true);
-    this.bgVideo.play(true);
-  } else {
-    this.bgVideo = this.add.video(30, 100, 'heartbeat').setOrigin(-0.25, 0).setDepth(0);
-    this.bgVideo.setMute(true);
-    this.bgVideo.play(true);
-    if (line.speed) this.bgVideo.setPlaybackRate(line.speed);
-  }
-
-  if (this.activityImage) this.activityImage.destroy();
-  this.thoughtBubbles.forEach(b => b.destroy());
-  this.thoughtBubbles = [];
-
-  if (line.bubble) {
-    const bubble = this.add.text(830, 200, line.bubble, {
-      fontSize: '22px',
-      color: '#000',
-      backgroundColor: '#ffffff',
-      padding: { left: 12, right: 12, top: 8, bottom: 8 }
-    }).setOrigin(1, 1.3).setAlpha(0).setDepth(10);
-
-    this.tweens.add({
-      targets: bubble,
-      x: 920,
-      alpha: 1,
-      duration: 600,
-      ease: 'Sine.easeInOut'
-    });
-
-    this.thoughtBubbles.push(bubble);
-  }
-
-  if (line.image) {
-    this.activityImage = this.add.image(830, 200, line.image)
-      .setOrigin(0.8, 0.1)
-      .setScale(1)
-      .setDepth(9);
-  }
-
-  this.dialogueUI.onLineComplete = () => {
-    this.currentLine++;
-    this.showCurrentLine();
-  };
-
-  this.backButton.setVisible(this.currentLine > 0);
-  this.dialogueUI.startDialogue([{ speaker: 'Narrator', text: line.text }]);
-}
-
 
   showGameTransition() {
-    this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.75).setOrigin(0.5);
-    this.add.rectangle(512, 384, 880, 500, 0xffffff).setOrigin(0.5);
-    this.add.text(512, 360, "Quest 4: Feel the Rhythm\nWatch the activity and tap to match the heartbeat.\nStay on beat to win!", {
-      fontSize: '24px',
-      color: '#222',
-      align: 'center',
-      wordWrap: { width: 800 }
-    }).setOrigin(0.5);
+    // Dark semi-transparent overlay
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7)
+      .setOrigin(0.5)
+      .setInteractive()
+      .setDepth(1000);
 
-    const startBtn = this.add.text(512, 500, 'Start Game', {
+    // Show quest4 image popup
+    const popup = this.add.image(512, 384, 'quest4')
+      .setOrigin(0.5)
+      .setDepth(1001)
+      .setScale(0.48);
+
+    // Start Game button below popup
+    const startBtn = this.add.text(512, 680, 'Start Game', {
       fontSize: '28px',
       color: '#FFD700',
       backgroundColor: '#333',
       padding: { left: 20, right: 20, top: 10, bottom: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    })
+      .setOrigin(0.5)
+      .setDepth(1002)
+      .setInteractive({ useHandCursor: true });
 
-    startBtn.on('pointerdown', () => this.scene.start('Chapter4game'));
+    startBtn.on('pointerdown', () => {
+      overlay.destroy();
+      popup.destroy();
+      startBtn.destroy();
+      this.scene.start('Chapter4game');
+    });
   }
 }

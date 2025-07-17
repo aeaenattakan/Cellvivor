@@ -52,7 +52,7 @@ export class MainMenu extends Scene {
                 color: '#ffffffff'
             }).setOrigin(0.5).setDepth(1).setInteractive({ useHandCursor: true });
 
-            const startGame = () => this.scene.start('Chapter4game'); ///
+            const startGame = () => this.scene.start('Mode'); ///
             bg.on('pointerdown', startGame);
             playText.on('pointerdown', startGame);
 

@@ -14,6 +14,7 @@ import { Chapter3 } from './scenes/Chapter3.js';
 import { Chapter3game } from './scenes/Chapter3game.js';
 import { Chapter4 } from './scenes/Chapter4.js';
 import { Chapter4game } from './scenes/Chapter4game.js';
+//import { EndingScene } from './scenes/EndingScene.js';
 
 
 const config = {
@@ -37,7 +38,8 @@ const config = {
         Chapter3,
         Chapter3game,
         Chapter4, 
-        Chapter4game
+        Chapter4game,
+        //EndingScene
     ],
       physics: {
     default: 'arcade',

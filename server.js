@@ -13,16 +13,15 @@ const app = express();
 const { urlencoded, json } = bodyParser;
 
 const mongo_uri = "mongodb+srv://bammynithirathaya:cellvivor@cluster0.ovn4dde.mongodb.net/guessitdb?retryWrites=true&w=majority&appName=Cluster0";
-//console.log("[SERVER] Loaded server.js with gameplay-mistake route");
 console.log('[BOOT] server.js is starting...');
 
 // --- MongoDB Schemas ---
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
-  progress: { type: Number, required: true },
-  gameprogress: { type: String, required: true },
-  weakness: { type: Array, required: true },
+  progress: { type: Number, default: 0 },
+  gameprogress: { type: String, default: "Chapter1" },
+  weakness: { type: Array, default: [] },
 });
 const User = mongoose.models.Users || mongoose.model('Users', userSchema);
 
@@ -131,7 +130,7 @@ app.get('/api/random-keyword', async (req, res) => {
   }
 });
 
-// ✅ Patch user progress
+// Patch user progress
 app.patch('/users/:id', async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
@@ -170,7 +169,7 @@ app.post('/api/gameplay-mistake', async (req, res) => {
 });
 
 
-// ✅ Multiplayer-aware score lookup
+// Multiplayer-aware score lookup
 app.get('/api/gameplay-score', async (req, res) => {
   try {
     const { roomCode } = req.query;
@@ -183,21 +182,26 @@ app.get('/api/gameplay-score', async (req, res) => {
   }
 });
 
-// ✅ Save game scene
-app.post('/progress/save', async (req, res) => {
-  const { userId, scene } = req.body;
-  if (!userId || !scene) return res.status(400).json({ error: 'Missing userId or scene' });
-  await User.updateOne({ _id: userId }, { $set: { gameprogress: scene } });
-  res.sendStatus(200);
-});
-
-// ✅ Load game scene
+// Load game scene
 app.get('/progress/load/:userId', async (req, res) => {
-  const user = await User.findById(req.params.userId);
-  res.json({ lastScene: user?.gameprogress || "Chapter1" });
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.log('Full user data:', user);
+    console.log('gameprogress field:', user.gameprogress);
+    res.json({ lastScene: user.gameprogress || "Chapter1" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// ✅ Auth check
+
+
+
+// Auth check
 app.post('/api/check-user', async (req, res) => {
   try {
     const { name, email } = req.body;
@@ -208,15 +212,28 @@ app.post('/api/check-user', async (req, res) => {
   }
 });
 
-// ✅ Signup
+// Signup
 app.post('/api/signin', async (req, res) => {
   try {
     const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
     const existing = await User.findOne({ name, email });
     if (existing) return res.status(409).json({ message: 'User already exists' });
 
-    const newUser = new User({ name, email, progress: 0, gameprogress: "Chapter1", weakness: [] });
+    const newUser = new User({
+      name,
+      email,
+      progress: 0,               
+      gameprogress: "Chapter1",  
+      weakness: [],              
+    });
+
     const savedUser = await newUser.save();
+
     res.status(201).json({
       success: true,
       message: "Sign in successful",
@@ -225,7 +242,8 @@ app.post('/api/signin', async (req, res) => {
         name: savedUser.name,
         email: savedUser.email,
         progress: savedUser.progress,
-        gameprogress: savedUser.gameprogress
+        gameprogress: savedUser.gameprogress,
+        weakness: savedUser.weakness,
       }
     });
   } catch (error) {
@@ -233,28 +251,63 @@ app.post('/api/signin', async (req, res) => {
   }
 });
 
-// ✅ Login
+// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { name, email } = req.body;
-    const user = await User.findOne({ name, email });
-    if (user) {
-      res.json({
-        success: true,
-        message: 'Login successful',
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          progress: user.progress,
-          gameprogress: user.gameprogress
-        }
-      });
-    } else {
-      res.json({ success: false, message: 'User not found' });
+    let user = await User.findOne({ name, email });
+
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' });
     }
+
+    // --- Patch missing fields for legacy users ---
+    let updateNeeded = false;
+    if (user.progress === undefined) {
+      user.progress = 0;
+      updateNeeded = true;
+    }
+    if (!user.gameprogress) {
+      user.gameprogress = "Chapter1";
+      updateNeeded = true;
+    }
+    if (!user.weakness || !Array.isArray(user.weakness)) {
+      user.weakness = [];
+      updateNeeded = true;
+    }
+
+    if (updateNeeded) await user.save();
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        progress: user.progress,
+        gameprogress: user.gameprogress,
+        weakness: user.weakness,
+      }
+    });
+
   } catch (error) {
     res.status(500).send('Server error');
+  }
+});
+
+//storyboardmode
+app.post('/progress/save', async (req, res) => {
+  const { userId, scene } = req.body;
+  if (!userId || !scene || scene.trim() === '') {
+    return res.status(400).json({ error: 'Missing or invalid userId or scene' });
+  }
+  try {
+    await User.updateOne({ _id: userId }, { $set: { gameprogress: scene } });
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Save progress error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
